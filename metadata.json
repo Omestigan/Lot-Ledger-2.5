@@ -1,0 +1,8 @@
+{
+  "name": "Lot & Ledger: Procedural Auto Tycoon",
+  "description": "Used-car flipping simulation featuring a procedurally generated relationship graph of contacts, dealerships, auctions, mechanics, and underground brokers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

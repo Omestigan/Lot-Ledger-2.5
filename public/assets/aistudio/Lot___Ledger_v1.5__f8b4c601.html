@@ -1,0 +1,1213 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lot &amp; Ledger</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: ruled-ledger header strip over a tabbed board; listing board left, dossier right (full-screen sheet on phones) */
+:root{
+  --bg:#e6ecef; --panel:#f5f8f9; --panel2:#dce5e9; --ink:#12202a; --mute:#586f7d; --line:#c2cfd6;
+  --acc:#1d5fa6; --acc-ink:#ffffff; --good:#1f7a4d; --warn:#b4561c; --bad:#b3302a; --gold:#946700; --win:#cfdbe1;
+  --f-disp:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Instrument Sans',system-ui,sans-serif; --f-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e161c; --panel:#16212a; --panel2:#1e2c37; --ink:#e3ebef; --mute:#8aa0ad; --line:#2b3b47;
+  --acc:#6fb0f0; --acc-ink:#0b1a28; --good:#52c28a; --warn:#e8934f; --bad:#ee7b72; --gold:#e0b04a; --win:#2a3b47; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e161c; --panel:#16212a; --panel2:#1e2c37; --ink:#e3ebef; --mute:#8aa0ad; --line:#2b3b47;
+  --acc:#6fb0f0; --acc-ink:#0b1a28; --good:#52c28a; --warn:#e8934f; --bad:#ee7b72; --gold:#e0b04a; --win:#2a3b47; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);
+  padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.hd{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:10px 0 8px;border-bottom:3px double var(--line);display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-end;justify-content:space-between}
+.brand{font:800 24px/1 var(--f-disp);letter-spacing:-.03em}
+.brand i{font-style:normal;color:var(--acc)}
+.brand small{display:block;font:500 10px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-top:4px}
+.stats{display:flex;flex-wrap:wrap;gap:4px 18px}
+.stat{font:500 10px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.stat b{display:block;font:600 15px var(--f-mono);letter-spacing:0;color:var(--ink);font-variant-numeric:tabular-nums}
+.stat b.bad{color:var(--bad)}
+.acts{display:flex;gap:6px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 11px;font-weight:500}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:var(--acc);color:var(--acc-ink);border-color:var(--acc);font-weight:600}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.danger{color:var(--bad)}
+.tabs{display:flex;gap:2px;overflow-x:auto;padding:8px 0 0;border-bottom:1px solid var(--line)}
+.tab{border:0;background:transparent;padding:8px 14px;font-weight:600;color:var(--mute);border-bottom:3px solid transparent;white-space:nowrap}
+.tab.on{color:var(--ink);border-bottom-color:var(--acc)}
+.tab em{font:600 11px var(--f-mono);font-style:normal;background:var(--acc);color:var(--acc-ink);border-radius:9px;padding:1px 6px;margin-left:5px}
+.strip{font:500 12px var(--f-mono);color:var(--mute);padding:8px 0;display:flex;flex-wrap:wrap;gap:4px 16px}
+.strip .w{color:var(--warn)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.single{display:block;max-width:900px}
+.list{display:flex;flex-direction:column;gap:8px;min-width:0}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:2px}
+.filters select,.field{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:5px 8px;font:inherit;min-width:0}
+.chip{border:1px solid var(--line);background:transparent;border-radius:14px;padding:3px 10px;font-size:12px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lc{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.lc.sel{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)}
+.lc b{display:block;font:700 14px var(--f-disp);letter-spacing:-.01em}
+.lc span.s{display:block;font-size:12px;color:var(--mute);overflow-wrap:anywhere}
+.pr{font:600 15px var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.pr small{display:block;font:500 9px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.tag{font:500 10px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--mute)}
+.tag.g{color:var(--good);border-color:var(--good)} .tag.w{color:var(--warn);border-color:var(--warn)} .tag.b{color:var(--bad);border-color:var(--bad)} .tag.a{color:var(--acc);border-color:var(--acc)}
+.car{width:100%;height:auto;display:block}
+.dossier{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 118px);max-height:calc(100vh - 150px);overflow:auto}
+.dossier h2{font:800 20px/1.15 var(--f-disp);letter-spacing:-.02em;margin:0 0 2px;text-wrap:balance}
+.dossier h3{font:600 10px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:16px 0 6px;padding-top:10px;border-top:1px solid var(--line)}
+.close{display:none}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;font-size:13px}
+.kv dt{color:var(--mute)} .kv dd{margin:0;overflow-wrap:anywhere}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.note{background:var(--panel2);border-radius:6px;padding:8px 10px;font-size:13px;margin:6px 0}
+.note.warn{border-left:3px solid var(--warn)} .note.bad{border-left:3px solid var(--bad)} .note.good{border-left:3px solid var(--good)}
+.flash{background:var(--ink);color:var(--bg);border-radius:6px;padding:8px 10px;margin:0 0 10px;font-size:13px}
+.flash p{margin:2px 0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)} .mute{color:var(--mute)}
+.iss{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:7px 0;border-bottom:1px dashed var(--line);align-items:center}
+.iss:last-child{border-bottom:0}
+.iss .t{overflow-wrap:anywhere}
+.bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:4px}
+.bar>i{display:block;height:100%;background:var(--acc)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+.card h4{margin:0 0 4px;font:700 15px var(--f-disp)}
+.log{font:12px/1.5 var(--f-mono);display:flex;flex-direction:column;gap:2px}
+.log div{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}
+.over{background:var(--ink);color:var(--bg);border-radius:8px;padding:14px;margin:10px 0}
+.empty{color:var(--mute);padding:18px;border:1px dashed var(--line);border-radius:8px;text-align:center}
+@media (max-width:900px){
+  .main{display:block}
+  .dossier{display:none}
+  .dossier.open{display:block;position:fixed;inset:0;z-index:40;max-height:none;border-radius:0;border:0;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+  .close{display:inline-block;margin-bottom:8px}
+  .lc{grid-template-columns:64px minmax(0,1fr) auto}
+}
+@media (prefers-reduced-motion:no-preference){.lc,.btn{transition:border-color .12s}}
+.map{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:8px}.pin{cursor:pointer}.pin:focus-visible{outline:2px solid var(--acc)}
+</style>
+<div id="root"></div>
+<script>
+'use strict';
+const SAVEKEY='lotledger-v1';
+let S, UI={tab:'market',sel:null,flash:[],offer:'',parts:'new',menu:false,filt:{src:'all',sort:'new',max:0},sell:{ask:'',disc:true,ad:0}};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=n=>(n<0?'−':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-CA');
+function R(){S.rs=(S.rs+0x6D2B79F5)|0;let t=Math.imul(S.rs^(S.rs>>>15),1|S.rs);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}
+const rf=(a,b)=>a+R()*(b-a), ri=(a,b)=>Math.floor(rf(a,b+1)), ch=p=>R()<p, pick=a=>a[Math.floor(R()*a.length)];
+const wpick=a=>{const t=a.reduce((s,x)=>s+x.w,0);let r=R()*t;for(const x of a){r-=x.w;if(r<=0)return x}return a[a.length-1]};
+const dateOf=d=>new Date(2026,9,22+(d==null?S.day:d));
+const fmtDate=d=>dateOf(d).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+const monthN=()=>dateOf().getMonth()+1;
+const winterReq=()=>{const m=monthN(),d=dateOf().getDate();if(RG.win==='law'&&RG.id==='bc')return m>=10||m<=3;return m===12||m<=2||(m===3&&d<=15)};
+const winLaw=()=>RG.win==='law';
+const winterSoon=()=>{const m=monthN();return m===11||winterReq()};
+
+/* ---------- catalogue: make|model|from|to|anchorYear|midPriceAtAnchor|class|drive|trans|reliability|rust|known|engines ---------- */
+const RAW=`Toyota|Corolla|2003|2009|2005|3500|compact|FWD|am|95|50|-|1.8L I4;1.6L I4
+Toyota|Camry|2005|2011|2010|4600|sedan|FWD|a|93|45|-|2.4L I4;3.5L V6
+Toyota|Yaris|2007|2013|2009|3300|compact|FWD|am|90|45|-|1.5L I4
+Toyota|RAV4|2006|2012|2010|6800|suv|AWD|a|88|50|-|2.5L I4;3.5L V6
+Toyota|Tacoma|2005|2011|2008|9500|truck|4WD|am|90|85|frame|2.7L I4;4.0L V6
+Toyota|Sienna|2004|2010|2008|4500|van|FWD|a|85|55|-|3.5L V6
+Toyota|Highlander|2005|2011|2008|6800|suv|AWD|a|88|50|-|2.7L I4;3.5L V6
+Toyota|4Runner|2003|2010|2007|9000|suv|4WD|a|90|80|-|4.0L V6;4.7L V8
+Toyota|Prius|2004|2011|2009|5600|hatch|FWD|c|85|45|hybrid|1.5L Hybrid
+Pontiac|Vibe|2003|2008|2006|2850|hatch|FWD|am|90|55|-|1.8L I4
+Honda|Civic|2003|2010|2007|3900|compact|FWD|am|93|50|takata|1.8L I4;1.7L I4
+Honda|Accord|2003|2010|2008|4300|sedan|FWD|am|90|50|takata|2.4L I4;3.0L V6
+Honda|CR-V|2005|2012|2012|8000|suv|AWD|a|90|50|-|2.4L I4
+Honda|Fit|2007|2013|2010|4800|hatch|FWD|am|90|45|-|1.5L I4
+Honda|Odyssey|2005|2010|2008|4000|van|FWD|a|80|55|trans|3.5L V6
+Honda|Pilot|2006|2012|2009|6000|suv|AWD|a|85|55|-|3.5L V6
+Acura|TL|2004|2011|2008|5000|lux|FWD|am|85|50|-|3.2L V6;3.5L V6
+Honda|S2000|2002|2009|2005|16500|conv|RWD|m|90|40|-|2.2L I4
+Mazda|Mazda3|2004|2012|2010|4100|compact|FWD|am|85|85|-|2.0L I4;2.3L I4
+Mazda|Mazda6|2003|2010|2008|3400|sedan|FWD|am|80|80|-|2.3L I4;3.0L V6
+Mazda|MX-5 Miata|2002|2010|2006|7500|conv|RWD|m|90|60|-|1.8L I4;2.0L I4
+Nissan|Sentra|2007|2012|2010|3300|compact|FWD|cm|60|50|cvt|2.0L I4
+Nissan|Altima|2007|2012|2010|3900|sedan|FWD|c|60|50|cvt|2.5L I4
+Nissan|Rogue|2008|2014|2012|6200|suv|AWD|c|60|50|cvt|2.5L I4
+Nissan|Versa|2007|2013|2010|2600|compact|FWD|cm|60|55|cvt|1.8L I4
+Nissan|350Z|2003|2009|2006|11000|sport|RWD|m|80|50|-|3.5L V6
+Nissan|Frontier|2005|2012|2008|6500|truck|4WD|am|78|85|-|2.5L I4;4.0L V6
+Hyundai|Elantra|2007|2015|2011|3500|compact|FWD|am|75|60|-|1.8L I4;2.0L I4
+Hyundai|Sonata|2006|2014|2010|3800|sedan|FWD|a|70|55|theta|2.4L I4
+Hyundai|Accent|2006|2013|2010|2800|compact|FWD|am|70|60|-|1.6L I4
+Kia|Rio|2008|2014|2011|2800|compact|FWD|am|70|60|-|1.6L I4
+Kia|Forte|2010|2016|2012|4400|compact|FWD|am|70|55|-|2.0L I4
+Kia|Sorento|2007|2013|2011|5800|suv|AWD|a|70|55|-|2.4L I4;3.5L V6
+Ford|Focus|2005|2014|2008|1850|compact|FWD|am|55|70|dct|2.0L I4
+Ford|Fiesta|2011|2016|2013|4300|compact|FWD|am|55|60|dct|1.6L I4
+Ford|Fusion|2006|2013|2010|3800|sedan|FWD|a|65|65|-|2.5L I4;3.0L V6
+Ford|Escape|2005|2012|2009|3800|suv|AWD|a|65|70|-|2.5L I4;3.0L V6
+Ford|F-150|2003|2011|2006|5000|truck|4WD|a|75|90|-|4.6L V8;5.4L V8
+Ford|Ranger|2003|2010|2005|3800|truck|4WD|am|70|85|-|3.0L V6;4.0L V6
+Ford|Mustang|2005|2012|2008|8500|sport|RWD|am|70|55|-|4.0L V6;4.6L V8
+Ford|Explorer|2006|2012|2008|4200|suv|AWD|a|55|65|-|4.0L V6
+Chevrolet|Cobalt|2005|2010|2008|1300|compact|FWD|am|55|70|ign|2.2L I4
+Chevrolet|Malibu|2006|2012|2010|3000|sedan|FWD|a|60|65|-|2.4L I4;3.6L V6
+Chevrolet|Equinox|2007|2013|2011|4800|suv|AWD|a|55|65|chain|2.4L I4;3.0L V6
+Chevrolet|Silverado 1500|2003|2011|2007|6000|truck|4WD|a|70|90|-|4.8L V8;5.3L V8
+Chevrolet|Impala|2006|2013|2009|3200|sedan|FWD|a|65|65|-|3.5L V6
+Dodge|Caliber|2007|2012|2009|1350|compact|FWD|cm|40|75|cvt|2.0L I4
+Dodge|Grand Caravan|2005|2012|2010|3000|van|FWD|a|50|70|-|3.3L V6;3.8L V6
+Dodge|Charger|2006|2012|2010|6500|sedan|RWD|a|60|65|-|3.5L V6;5.7L V8
+Jeep|Wrangler|2004|2011|2008|9500|suv|4WD|m|70|95|-|3.8L V6;4.0L I6
+Jeep|Liberty|2005|2012|2008|3200|suv|4WD|a|50|85|-|3.7L V6
+Ram|1500|2009|2015|2011|8500|truck|4WD|a|65|85|-|4.7L V8;5.7L V8
+Subaru|Impreza|2004|2011|2008|3800|compact|AWD|am|70|65|hg|2.5L H4
+Subaru|Forester|2004|2011|2009|4800|suv|AWD|am|70|65|hg|2.5L H4
+Subaru|Outback|2005|2011|2010|5500|hatch|AWD|am|70|65|hg|2.5L H4
+Volkswagen|Jetta|2005|2012|2009|3500|sedan|FWD|am|55|55|-|2.0L I4;2.5L I5
+Volkswagen|Golf / GTI|2006|2013|2009|5200|hatch|FWD|am|55|50|-|2.0L I4;2.0L Turbo I4
+BMW|328i|2006|2013|2007|3750|lux|RWD|am|40|60|n20|3.0L I6;2.0L Turbo I4
+BMW|335i|2007|2013|2008|4800|lux|RWD|am|35|60|turbo|3.0L Twin-Turbo I6
+BMW|X3|2006|2013|2008|5000|suv|AWD|a|40|60|-|3.0L I6
+Audi|A4|2005|2012|2008|4000|lux|AWD|am|40|55|oilc|2.0L Turbo I4
+Mercedes-Benz|C-Class|2005|2011|2008|4200|lux|RWD|a|45|55|-|2.5L V6;3.5L V6
+Lexus|IS 250|2006|2011|2008|6500|lux|RWD|a|85|50|-|2.5L V6
+Lexus|RX 350|2007|2012|2009|8500|suv|AWD|a|88|55|-|3.5L V6
+Land Rover|LR3|2005|2009|2007|4800|suv|4WD|a|20|85|airsusp|4.4L V8
+Fiat|500|2012|2016|2013|3800|hatch|FWD|am|35|50|-|1.4L I4
+Mini|Cooper|2007|2013|2009|4200|hatch|FWD|am|45|55|chain|1.6L I4
+Mitsubishi|Lancer|2008|2015|2011|4200|compact|FWD|cm|60|55|cvt|2.0L I4`;
+const CAT=[];
+RAW.split('\n').forEach(s=>{const p=s.split('|');
+  for(let y=+p[2];y<=+p[3];y++)CAT.push({id:CAT.length,make:p[0],model:p[1],year:y,anc:+p[4],mid:+p[5],cls:p[6],drv:p[7],tr:p[8],rel:+p[9]/100,rust:+p[10]/100,kn:p[11],eng:p[12].split(';'),
+    base:+p[5]*Math.pow(1.085,y-+p[4]),kmT:Math.max(40000,(2026-y)*12000),name:y+' '+p[0]+' '+p[1]})});
+const WT={compact:1250,hatch:1250,sedan:1450,suv:1800,truck:2100,van:1950,sport:1450,lux:1650,conv:1250};
+const TRIMN={compact:['Base','LE','Sport','EX'],sedan:['SE','LX','EX-L','Limited'],suv:['Base','LX','Sport','Limited'],truck:['XL','XLT','SLT','Lariat'],sport:['Base','GT','Sport','Premium'],lux:['Base','Premium','Sport','Executive'],van:['LE','EX','Sport','Limited'],hatch:['Base','Sport','EX','Premium'],conv:['Base','Touring','Sport','Premium']};
+const TRIMM=[.93,1,1.05,1.12];
+const COLORS=[['Silver','#a9b2b8'],['Black','#252b30'],['White','#e8ebec'],['Grey','#6c767d'],['Blue','#2f5d9a'],['Red','#a8322d'],['Green','#3d6b52'],['Gold','#b59a5a'],['Burgundy','#6b2a35']];
+const NAMES=['Marc-André','Julie','Kevin','Sophie','Luc','Amélie','Dave','Nadia','Steve','Mélanie','Patrick','Chantal','Yan','Karine','Hugo','Éric'];
+const DEALERS=['Auto Estrie','Sherbrooke Auto Plus','Garage Lapointe','Bolduc Motors','Ste-Cécile Autos'];
+const RUSTN=['None','Surface rust','Bubbling paint','Perforation','Structural rust'];
+const RUSTP=[0,.02,.09,.28,1], INTP=[0,.02,.05,.09], INTN=['Clean','Light wear','Worn, stained','Trashed'];
+const SKN={neg:'Negotiation',mech:'Mechanical',body:'Bodywork',appr:'Appraisal',paper:'Paperwork',mkt:'Marketing',net:'Networking'};
+const LV=[0,5,14,28,48,75,110,155,210,280];
+const lv=k=>LV.filter(t=>S.skills[k]>=t).length;
+const addXp=(k,n)=>{S.skills[k]+=n};
+
+/* ---------- repair issues: k,label,sys,sev,lo,hi,hrs,pen,walk,drive,obd,ppi,weight,block,manualOnly,autoOnly ---------- */
+const ISS=[
+['oil','Oil seep at valve cover / pan gasket','Engine',1,40,120,2.5,.03,.8,.1,0,.9,10],
+['brk','Worn pads and rotors','Brakes',1,120,280,2,.06,.3,.8,0,.95,10],
+['brl','Corroded brake lines','Brakes',3,300,650,4,.1,.25,.2,0,.9,3,1],
+['str','Worn struts and bushings','Suspension',1,300,750,4,.05,.2,.8,0,.9,9],
+['bj','Bad ball joints / control arm','Suspension',2,260,520,3,.05,.15,.6,0,.95,5,1],
+['cv','Clicking CV axle','Suspension',1,180,380,3,.05,.1,.9,0,.9,6],
+['whb','Wheel bearing hum','Suspension',1,150,320,2,.05,.05,.85,0,.9,6],
+['exh','Exhaust leak / rotted muffler','Exhaust',1,150,420,2,.05,.6,.7,0,.9,7],
+['cat','Clogged catalytic converter (P0420)','Exhaust',2,500,1300,2.5,.06,.05,.3,.95,.9,4],
+['alt','Failing alternator','Electrical',2,250,480,2,.08,.1,.7,.3,.9,5],
+['stt','Weak starter','Electrical',2,130,320,2,.07,.1,.6,0,.8,5],
+['acc','AC compressor dead','AC',1,450,950,4,.06,.9,.5,0,.85,6],
+['htc','Leaking heater core','Heat',2,380,820,7,.05,.35,.4,0,.9,3],
+['o2','Faulty O2 sensor (check-engine light)','Engine',1,60,200,1,.1,.2,.2,.95,.9,9],
+['mis','Misfire, worn coils and plugs','Engine',1,80,320,1.5,.12,.1,.7,.95,.9,8],
+['tb','Timing belt overdue','Engine',2,350,750,6,.05,.05,.05,0,.7,5],
+['cl','Worn clutch','Transmission',2,500,950,7,.06,.05,.9,0,.9,4,0,1,0],
+['trn','Slipping transmission','Transmission',3,1800,3300,11,.4,.1,.9,.2,.9,2,0,0,1],
+['cool','Coolant leak / failing water pump','Engine',2,260,560,3,.05,.4,.4,.1,.95,5],
+['psl','Power-steering leak','Suspension',1,120,380,2.5,.04,.5,.4,0,.9,5],
+['rod','Rodent-chewed wiring','Electrical',2,200,700,5,.05,.3,.3,.4,.8,3],
+['hg','Blown head gasket','Engine',3,1400,2300,14,.5,.5,.6,.5,.95,1]
+].map(a=>({k:a[0],label:a[1],sys:a[2],sev:a[3],lo:a[4],hi:a[5],hrs:a[6],pen:a[7],det:{walk:a[8],drive:a[9],obd:a[10],ppi:a[11]},w:a[12],block:!!a[13],man:!!a[14],auto:!!a[15]}));
+const KNX={
+cvt:['CVT judder and slipping','Transmission',3,2200,3400,9,.35,[.05,.9,.3,.9],.45],
+dct:['DCT shudder, clutch pack worn','Transmission',3,1400,2400,8,.3,[.05,.9,.2,.9],.5],
+hg:['Head gasket weeping coolant','Engine',3,1500,2400,14,.5,[.4,.5,.4,.95],.25],
+chain:['Timing chain stretch (rattle on cold start)','Engine',3,1100,2000,12,.3,[.05,.5,.6,.9],.3],
+n20:['N20 timing chain guide failure','Engine',3,1800,2900,12,.38,[.05,.5,.6,.9],.4],
+turbo:['Turbo / high-pressure fuel pump failure','Engine',3,1800,3600,10,.35,[.05,.6,.6,.9],.35],
+oilc:['Burns oil, worn rings','Engine',2,900,1700,10,.2,[.2,.3,.1,.9],.4],
+airsusp:['Air suspension collapsed','Suspension',2,900,1900,6,.2,[.6,.6,.2,.9],.6],
+hybrid:['Hybrid battery degraded','Electrical',3,1500,2500,5,.22,[.05,.4,.7,.9],.3],
+theta:['Engine bearing failure (known on this engine)','Engine',3,2500,4300,16,.5,[.1,.6,.4,.9],.3],
+trans:['Transmission shudders on 2-3 shift','Transmission',3,1800,2900,10,.35,[.05,.8,.2,.9],.3]};
+const KN={};Object.keys(KNX).forEach(k=>{const a=KNX[k];KN[k]={k,label:a[0],sys:a[1],sev:a[2],lo:a[3],hi:a[4],hrs:a[5],pen:a[6],det:{walk:a[7][0],drive:a[7][1],obd:a[7][2],ppi:a[7][3]},p:a[8],w:1,block:false}});
+function mkIssue(t){S.iid=(S.iid||0)+1;return{id:t.k+S.iid,k:t.k,label:t.label,sys:t.sys,sev:t.sev,lo:t.lo,hi:t.hi,parts:ri(t.lo,t.hi),hrs:t.hrs,pen:Math.min(.6,t.pen*rf(.85,1.15)),det:t.det,block:t.block,fixed:false}}
+/* ---------- regions (starting location) ---------- */
+const mk=(n,v,tow,adj,w,on)=>({n,v,tow,adj,w,on:on?1:0});
+const REG={
+ qc:{id:'qc',name:'Sherbrooke, Quebec',lon:-71.9,lat:45.4,lx:3,ly:-2.2,auth:'SAAQ',taxN:'QST',priv:.09975,dealer:.14975,regFee:95,rust:1,ins:1,win:'law',
+   bias:{},blurb:'Salted roads, strict inspections, QST at registration. The home market.',
+   cities:[mk('Sherbrooke',1,100,1,40),mk('Magog',1,110,.98,12),mk('Drummondville',1,130,1,10),mk('Montréal',2,170,1.04,14),mk('Québec',2,190,1.02,8),mk('Ottawa (ON)',2,200,.92,8,1),mk('Gatineau',2,200,.97,8)]},
+ on:{id:'on',name:'Toronto, Ontario',lon:-79.4,lat:43.7,lx:-3,ly:-2.2,auth:'ServiceOntario',taxN:'HST',priv:.13,dealer:.13,regFee:120,rust:.9,ins:1.7,win:'soft',
+   bias:{sedan:1.03},blurb:'Big market, HST on private sales, a Safety Standards Certificate to register. Insurance runs high.',
+   cities:[mk('Toronto',1,100,1.03,40),mk('Mississauga',1,110,1.03,15),mk('Hamilton',1,120,1,12),mk('London',2,190,.97,8),mk('Ottawa',2,210,1,8),mk('Montréal (QC)',2,230,1.02,6,1)]},
+ mi:{id:'mi',name:'Detroit, Michigan',lon:-83,lat:42.3,lx:-3.5,ly:3.6,auth:'Secretary of State',taxN:'use tax',priv:.06,dealer:.06,regFee:100,rust:.95,ins:1.5,win:'none',
+   bias:{truck:.93,suv:.95,lux:.95},blurb:'Cheap trucks and muscle, 6% use tax, no winter tire law. Closest source of US cars.',
+   cities:[mk('Detroit',1,100,.97,40),mk('Dearborn',1,100,.97,14),mk('Ann Arbor',1,115,1,12),mk('Lansing',2,170,.95,10),mk('Windsor (ON)',2,150,1,8,1)]},
+ ns:{id:'ns',name:'Halifax, Nova Scotia',lon:-63.6,lat:44.6,lx:3,ly:3,auth:'Service Nova Scotia',taxN:'HST',priv:.15,dealer:.15,regFee:100,rust:1.15,ins:1.1,win:'soft',
+   bias:{suv:1.05},blurb:'Salt and sea air eat cars. 15% HST. Smaller market, fewer flippers.',
+   cities:[mk('Halifax',1,100,.95,40),mk('Dartmouth',1,100,.95,15),mk('Truro',2,150,.92,10),mk('Sydney',2,250,.9,6),mk('Moncton (NB)',2,260,.95,6,1)]},
+ ab:{id:'ab',name:'Calgary, Alberta',lon:-114.1,lat:51,lx:2.5,ly:-2.4,auth:'Alberta Registries',taxN:'GST',priv:0,dealer:.05,regFee:90,rust:.5,ins:1.5,win:'none',
+   bias:{truck:1.12,suv:1.06,compact:.97},blurb:'No provincial sales tax and little rust. Trucks hold their value.',
+   cities:[mk('Calgary',1,100,1,40),mk('Airdrie',1,110,1,10),mk('Red Deer',2,160,.97,12),mk('Edmonton',2,200,.99,14),mk('Lethbridge',2,210,.95,6),mk('Kelowna (BC)',2,260,1.02,5,1)]},
+ bc:{id:'bc',name:'Vancouver, British Columbia',lon:-123.1,lat:49.3,lx:-3.5,ly:-2.2,auth:'ICBC',taxN:'PST',priv:.12,dealer:.12,regFee:140,rust:.3,ins:1.6,win:'law',
+   bias:{compact:1.06,hatch:1.06,truck:.95,sport:1.04},blurb:'Almost no rust, 12% tax, mandatory winter tires on mountain highways Oct 1 to Mar 31.',
+   cities:[mk('Vancouver',1,100,1.06,40),mk('Surrey',1,110,1.04,16),mk('Victoria',2,230,1.05,8),mk('Kelowna',2,250,1.0,8),mk('Seattle (US)',2,160,.98,5,1)]}};
+let RG=REG.qc,CITIES=RG.cities;
+function setRegion(id){RG=REG[id]||REG.qc;CITIES=RG.cities}
+const MAPLAND=[[-135,61],[-135,59],[-130,55],[-128,51],[-124.2,48.4],[-124.5,43],[-122,37],[-118,34],[-117,32.5],[-114.7,32.7],[-111,31.3],[-108.2,31.8],[-106.5,31.8],[-104.5,29.6],[-101,29.7],[-99.5,27.5],[-97.2,25.9],[-97.4,27.8],[-94.7,29.3],[-91,29.3],[-89,30],[-87,30.4],[-84,29.8],[-82.8,27.8],[-81.2,25.3],[-80.1,26.8],[-80.6,28.5],[-81.4,30.7],[-79,33.5],[-75.6,35.2],[-76,37],[-74,39.5],[-73.9,40.6],[-72,41],[-70,41.7],[-70.6,42.6],[-70.2,43.7],[-67,44.8],[-65.8,43.6],[-63.5,44.5],[-61,45.3],[-60,46.2],[-61.5,45.9],[-64,46.2],[-64.8,47.5],[-66.5,48.2],[-64.4,49.1],[-60,50.2],[-56,52],[-52,52],[-52,61]];
+const MAPWATER=[[[-95,62],[-93,58],[-88,56],[-83,55],[-82,52.5],[-80,51.3],[-79,54],[-77,56],[-78,59],[-80,62]],[[-92,46.7],[-89,48.2],[-85,48.7],[-84.5,46.8],[-87.5,46.5]],[[-87.7,41.7],[-87,45.8],[-85.5,45.7],[-86.4,43]],[[-84.7,45.9],[-82,46],[-80,44.8],[-82.5,43.2]],[[-83.4,41.7],[-80,42.8],[-79,42.8],[-82.6,41.5]],[[-79.8,43.3],[-76.2,43.5],[-76.5,44.1],[-79,43.8]]];
+const MAPNF=[[-59.3,47.6],[-56,47.6],[-52.8,46.8],[-52.6,47.8],[-53.5,49.3],[-55.5,51.5],[-57.5,50.5],[-59,48.3]];
+const mp=a=>a.map(p=>(p[0]+180).toFixed(1)+','+(90-p[1]).toFixed(1)).join(' ');
+function mapSVG(sel){
+  let s='<svg viewBox="42 28 90 31" class="map" role="img" aria-label="Map of North America with starting cities"><rect x="42" y="28" width="90" height="31" fill="var(--panel2)"/>'+
+  '<polygon points="'+mp(MAPLAND)+'" fill="var(--panel)" stroke="var(--line)" stroke-width=".25"/><polygon points="'+mp(MAPNF)+'" fill="var(--panel)" stroke="var(--line)" stroke-width=".25"/>'+
+  MAPWATER.map(w=>'<polygon points="'+mp(w)+'" fill="var(--panel2)" stroke="var(--line)" stroke-width=".2"/>').join('');
+  Object.keys(REG).forEach(k=>{const r=REG[k],x=r.lon+180,y=90-r.lat,on=sel===k;
+    s+='<g class="pin" data-a="pickreg" data-v="'+k+'" tabindex="0" role="button" aria-label="'+r.name+'"><circle cx="'+x+'" cy="'+y+'" r="'+(on?1.4:1)+'" fill="'+(on?'var(--acc)':'var(--ink)')+'" stroke="var(--panel)" stroke-width=".4"/>'+
+    '<text x="'+(x+r.lx)+'" y="'+(y+r.ly)+'" font-size="1.5" text-anchor="'+(r.lx<0?'end':'start')+'" fill="var(--ink)" font-weight="'+(on?700:500)+'">'+r.name.split(',')[0]+'</text></g>'});
+  return s+'</svg>'}
+/* ---------- state ---------- */
+function newState(mode){
+  const s={v:1,rs:(Math.random()*2147483647)|0,uid:1,lid:1,iid:0,day:0,cash:2000,debt:0,credit:600,rep:50,mode:mode||'free',
+    skills:{neg:0,mech:0,body:0,appr:0,paper:0,mkt:0,net:0},ins:false,tools:{obd:false,comp:false},slots:1,lic:false,
+    partners:{mech:false,det:false,flip:false},visits:3,hrs:6,favours:1,gas:0,listings:[],cars:[],offers:[],claims:[],sales:[],log:[],
+    stats:{flips:0,profit:0,best:0},over:null,peak:2000};
+  return s;
+}
+const visMax=()=>3+(lv('net')>=4?1:0)+(hasRole('scout')?1:0);
+const insM=()=>Math.round((78+S.cars.filter(c=>c.regd).length*14+(S.lic?60:0))*RG.ins);
+function log(msg,money){S.log.unshift({d:S.day,m:msg,$:money||0});if(S.log.length>80)S.log.pop()}
+function flash(...m){UI.flash=m}
+const nameOf=c=>{const e=CAT[c.cid];return e.year+' '+e.make+' '+e.model+' '+TRIMN[e.cls][c.trim]};
+
+/* ---------- valuation ---------- */
+function kmF(km,e){const d=(km-e.kmT)/1000;let f=1-d*.0028*(1.35-e.rel);
+  [100,200,300].forEach(t=>{if(km>t*1000&&e.kmT<=t*1000)f-=.03+(1-e.rel)*.1+(e.rel<.45?.06:0)});return clamp(f,.35,1.35)}
+const scrapV=c=>Math.round(250+WT[CAT[c.cid].cls]*.22);
+const TITLEM={clean:1,vga:.62,rebuilt:.62,irreparable:.35};
+/* mode: true (everything), seen (what a casual buyer sees in the ad and a quick look), known (what the owner has found out) */
+function worth(c,mode){
+  const e=CAT[c.cid],K=c.know,tru=mode==='true',kn=mode==='known';
+  const km=tru||(kn&&K.odo)?c.km:c.shown;
+  let v=e.base*TRIMM[c.trim]*kmF(km,e),p=1;
+  c.issues.forEach(i=>{if(i.fixed)return;const vis=i.det.walk>=.5||i.det.drive>=.5;
+    if(tru||(!kn&&vis)||(kn&&(K.issues[i.id]||vis)))p*=1-i.pen});
+  const rv=tru?c.rust:(kn&&K.rust!=null?K.rust:(c.rust>=2?c.rust-1:c.rust));
+  if(rv>=4)return Math.max(scrapV(c),Math.round(e.base*.1));
+  p*=1-RUSTP[rv];
+  const dn=tru||(kn&&K.dents!=null)?c.dents:Math.round(c.dents*.7);p*=1-Math.min(.08,.03*dn);
+  if(c.repaint&&(tru||(kn&&K.accident)))p*=c.gaps?.88:.92;
+  p*=1-INTP[c.interior];
+  if(c.water&&(tru||(kn&&K.water)))p*=.85;
+  if(c.tread<25)p*=.97;
+  if(c.modded)p*=.93;
+  if(c.recall&&(tru||(kn&&K.hist)))p*=.95;
+  const tt=tru?c.title:(kn&&K.hist?K.hist.title:c.adTitle);p*=TITLEM[tt]||1;
+  if(c.use!=='personal'&&(tru||(kn&&K.hist)))p*=.93;
+  if(c.detail)p*=1.03;
+  v=v*p+Math.min(3,c.receipts)*250;
+  if(!c.regd&&c.reg!=='valid')v-=200;
+  return Math.max(scrapV(c),Math.round(v/10)*10);
+}
+function mkt(c){const e=CAT[c.cid],m=monthN();let f=RG.bias[e.cls]||1;
+  if(e.cls==='conv'||e.cls==='sport')f*=(m>=3&&m<=6)?1.12:(m>=11||m<=1)?.88:1;
+  if(e.drv==='AWD'||e.drv==='4WD'||e.cls==='truck')f*=(m>=9&&m<=11)?1.08:(m>=4&&m<=8)?.95:1;
+  if(e.drv==='RWD'&&(m===12||m<=3))f*=.9;
+  if(e.base<5000&&m>=2&&m<=4)f*=1.08;
+  if(S.gas>0)f*=(e.cls==='truck'||e.cls==='suv'||e.cls==='van')?.9:(e.cls==='compact'||e.cls==='hatch')?1.05:1;
+  return f}
+function noise(c){return(((c.uid*9301+49297)%233280)/233280)*2-1}
+function estimate(c){const n=clamp(.2-.018*lv('appr'),.04,.2),mid=worth(c,'known')*mkt(c)*(c.know.full?1:.94)*(1+noise(c)*n*.5);
+  return[Math.round(mid*(1-n)/10)*10,Math.round(mid*(1+n)/10)*10]}
+function netWorth(){return S.cash-S.debt+portfolio()+stakesVal()+transitVal()+S.cars.reduce((s,c)=>s+(c.lienFlag&&!c.lienPaid?worth(c,'true')-c.lien:worth(c,'true'))*mkt(c)*.92,0)}
+function blockers(c){const b=c.issues.filter(i=>!i.fixed&&i.block).map(i=>i.label);if(c.rust>=3)b.push(RUSTN[c.rust]);return b}
+
+/* ---------- vehicle generation ---------- */
+function genCar(e,type,src,city){
+  const age=2026-e.year,rel=e.rel,col=pick(COLORS);
+  const use=(e.cls==='sedan'||e.cls==='suv'||e.cls==='van')?(R()<.8?'personal':pick(['fleet','rental','fleet','taxi','police'])):(R()<.92?'personal':'fleet');
+  const um={personal:1,fleet:1.25,taxi:1.7,rental:1.15,police:1.35}[use];
+  const km=Math.round(clamp(e.kmT*rf(.72,1.28)*um,15000,520000)/100)*100;
+  let q=.58+(rel-.5)*.45+rf(-.28,.24)-Math.min(.14,age*.005)-(use==='personal'?0:.08);
+  q+=({dealer:.1,flipper:.04,scammer:-.04,tow:-.28,auction:-.05}[type]||0);q=clamp(q,.06,.96);
+  let tr;const t=e.tr;
+  if(t==='a')tr='Automatic';else if(t==='m')tr='Manual';else if(t==='am')tr=(e.cls==='sport'||e.cls==='conv')?'Manual':ch(.72)?'Automatic':'Manual';
+  else if(t==='c')tr='CVT';else tr=(e.year>=2008&&ch(.78))?'CVT':'Manual';
+  if(e.kn==='dct'&&e.year>=2012)tr=ch(.68)?'DCT':'Manual';
+  const man=tr==='Manual',issues=[],used={};
+  const n=Math.max(0,Math.round((1-q)*5.4+rf(-.4,1.1)));
+  const pool=ISS.filter(i=>!(i.man&&!man)&&!(i.auto&&man));
+  for(let k=0;k<n;k++){const a=pool.filter(x=>!used[x.k]);if(!a.length)break;const i=wpick(a);used[i.k]=1;issues.push(mkIssue(i))}
+  const kn=KN[e.kn];
+  if(kn){let ok=true,p=kn.p*Math.min(1.3,km/e.kmT);
+    if(e.kn==='cvt')ok=tr==='CVT';if(e.kn==='dct')ok=tr==='DCT';if(e.kn==='hg')ok=e.year<=2011;
+    if(e.kn==='n20')ok=e.year>=2012;if(e.kn==='theta')ok=e.year>=2011&&e.year<=2014;
+    if(ok&&ch(p))issues.push(mkIssue(kn))}
+  let rv=e.rust*RG.rust*(age/18)*rf(.3,1.5)*.65+(e.kn==='frame'?.15:0);
+  let rust=rv<.1?0:rv<.24?1:rv<.45?2:rv<.7?3:4;
+  if(type==='dealer'&&rust>=3)rust=2;
+  let final=issues;if(type==='dealer')final=issues.filter(x=>!x.block&&(x.sev<3||ch(.4)));
+  const rep=ch(.08+(1-q)*.2);
+  let title='clean';if(ch(.18+((type==='auction'||type==='tow')?.28:0))&&type!=='dealer')title=pick(['vga','rebuilt','rebuilt','vga','irreparable']);
+  const masks=(type==='flipper'||type==='scammer')&&title!=='clean'&&ch(.75);
+  let reg=city.on?'oop':(type==='auction'||type==='tow')?'cancelled':type==='dealer'?'valid':R()<.72?'valid':R()<.8?'expired':'cancelled';
+  if(type!=='dealer'&&!city.on&&ch(.03))reg='riv';
+  const rolled=ch({scammer:.35,flipper:.12,optimistic:.04,honest:.01,uninformed:.01}[type]||0);
+  const c={uid:S.uid++,cid:e.id,trim:ri(0,3),color:col,vin:'2T1'+Math.random().toString(36).slice(2,8).toUpperCase()+ri(100000,999999)+'X',
+    owners:ri(1,1+Math.min(5,Math.ceil(age/4))),use,km,shown:rolled?Math.round(km*rf(.5,.75)/100)*100:km,rolled,tr,eng:e.eng[(e.year+e.make.length)%e.eng.length],
+    q,issues:final,rust,dents:ri(0,Math.round((1-q)*4.5)),repaint:rep,gaps:rep&&ch(.4),interior:clamp(Math.round((1-q)*3.2+rf(-.5,.6)),0,3),
+    water:ch(.03+(1-q)*.06),tread:ri(8,95),winter:ch(winterSoon()?.45:.2),modded:ch(e.cls==='sport'?.25:.07),title,adTitle:masks?'clean':title,
+    reg,lien:(type==='dealer'||!ch(.06))?0:ri(600,2600),lienPaid:false,cloned:type==='scammer'&&ch(.4),
+    recall:(e.kn==='takata'||e.kn==='ign')&&ch(.5)&&(e.year<=2012||e.kn==='ign'),receipts:ch(type==='honest'?.3:.1)?ri(1,2):0,
+    masked:type==='flipper',detail:false,regd:false,latent:[],job:null,sale:null,idle:0,basis:0,partGrade:'new',
+    know:{issues:{},rust:null,dents:null,interior:null,tires:null,accident:false,water:false,odo:false,odoSus:false,hist:null,ppi:false,said:[],mech:null,full:false}};
+  c.issues.forEach(i=>{i.sk=type==='uninformed'?ch(.08):type==='honest'?ch(.35+(i.det.walk+i.det.drive)/2):type==='optimistic'?ch(.55):type==='flipper'?true:false});
+  return c}
+function adText(l){const c=l.car,e=CAT[c.cid],t=l.seller.type,sk=c.issues.filter(i=>i.sk&&!i.fixed).map(i=>i.label.toLowerCase().replace(/ \(.*\)/,''));
+  if(l.src==='auction')return'Auction sheet: sold as-is, sight unseen. Condition grade not guaranteed. 10% buyer premium. Title and registration unverified.';
+  if(l.src==='tow')return'Yard stock, no keys. Sold as-is for parts or repair. Cash only, you tow it.';
+  if(t==='honest')return pick(['Selling my daily driver.','Well kept, used for commuting.','Second car, no longer needed.'])+(sk.length?' Known issues: '+sk.slice(0,2).join(', ')+'.':' Runs and drives well.')+' Winter tires '+(c.winter?'included':'not included')+'.';
+  if(t==='optimistic')return pick(['Runs great! Needs minor TLC only.','Excellent condition for the year, ready to go.','Great little car, never let me down.'])+' Price is firm-ish.';
+  if(t==='uninformed')return'Inherited from my father, barely driven lately. I don’t know much about cars, sorry. Selling as is.';
+  if(t==='flipper')return pick(['Just inspected, all fluids done, new tires. Clean title. Must see!','Fresh safety check, no issues. Reliable, a steal.','Personal vehicle, upgrading. Everything works.'])+' Serious buyers only.';
+  if(t==='scammer')return pick(['Must sell today, relocating overseas. Very low price for quick sale. Send deposit by e-transfer to hold, my agent delivers.','Owner abroad for work. Price reduced for fast sale. Deposit required to reserve.']);
+  return'Safety check done, financing available. '+pick(['30-day powertrain goodwill.','Sold with certificate of inspection.','Taxes extra. Trade-ins welcome.']);
+}
+function priceListing(l){const c=l.car,t=l.seller.type,vt=worth(c,'true')*mkt(c),vs=worth(c,'seen')*mkt(c);let ask,res;
+  if(l.src==='auction'){res=vt*rf(.62,.95);ask=res*rf(.55,.75)}
+  else if(l.src==='tow'){ask=Math.max(scrapV(c)+60,vs*rf(.3,.5));res=ask*.9}
+  else{const m={honest:[.64,.86,.9],optimistic:[.8,1.05,.85],uninformed:[.52,.78,.92],flipper:[.9,1.06,.93],scammer:[.4,.58,1],dealer:[1.1,1.3,.95]}[t];
+    const base=(t==='honest'||t==='uninformed'||t==='dealer')?vt:vs;ask=base*rf(m[0],m[1])*l.city.adj;res=ask*m[2]*rf(.97,1.03);
+    if(l.lead){ask*=.88;res*=.88}}
+  l.ask=Math.round(ask/25)*25;l.reserve=Math.max(scrapV(c),Math.round(res/10)*10);l.ask=Math.max(l.ask,l.reserve)}
+function genListing(opts){opts=opts||{};
+  const r=R(),src=(opts.cheap||opts.lead)?'classified':r<.68?'classified':r<.8?'dealer':r<.9?'auction':'tow';
+  let best=null,bw=-1;for(let i=0;i<5;i++){const e=CAT[ri(0,CAT.length-1)],w=R()/(1+e.base/((src==='dealer'?7000:3800)*(opts.cheap?.5:1)));if(w>bw){bw=w;best=e}}
+  let type=src==='dealer'?'dealer':src==='auction'?'auction':src==='tow'?'tow':wpick([{k:'honest',w:40},{k:'optimistic',w:26},{k:'uninformed',w:12},{k:'flipper',w:14},{k:'scammer',w:8}]).k;
+  const lead=src==='classified'&&(opts.lead||ch(.03*lv('net')));if(lead)type='honest';
+  const city=wpick(CITIES),c=genCar(best,type,src,city);
+  const l={id:S.lid++,car:c,src,city,lead,seller:{type,name:src==='dealer'?pick(DEALERS):pick(NAMES),claims:type==='flipper'||type==='scammer'?'private':src==='dealer'?'dealer':'private'},
+    posted:S.day,expires:S.day+(src==='dealer'?ri(14,40):src==='auction'?ri(1,4):src==='tow'?ri(6,20):ri(5,16)),tow:city.tow+ri(0,30),met:-1,asked:{},mood:0,rounds:0,deal:0,done:{}};
+  priceListing(l);l.text=adText(l);return l}
+function seedMarket(){while(S.listings.length<16)S.listings.push(genListing());let tries=0;
+  while(S.listings.filter(l=>l.ask<=1700&&l.src==='classified').length<4&&tries++<60)S.listings.push(genListing({cheap:true}))}
+/* ---------- listing actions ---------- */
+const LB=id=>S.listings.find(l=>l.id===id)||(S.imports||[]).find(l=>l.id===id);
+const detP=(i,tool,c)=>{let b=i.det[tool];if(c.masked&&(tool==='walk'||tool==='obd'))b*=.4;return clamp(b+(tool==='obd'?0:.035*(lv('appr')-1)),0,.97)};
+const metToday=l=>l.met===S.day;
+function meet(l){if(metToday(l))return flash('You are already with the seller today.');
+  const need=l.city.v;if(S.visits<need)return flash('Not enough time left today ('+need+' visit'+(need>1?'s':'')+' needed). End the day to reset.');
+  S.visits-=need;
+  if(l.seller.type!=='dealer'&&ch(.07)){flash('The seller never showed up. You lost the trip.');if(ch(.3)){S.listings=S.listings.filter(x=>x!==l);UI.sel=null;log('Seller of '+nameOf(l.car)+' sold it elsewhere.')}return}
+  l.met=S.day;flash('You meet the seller in '+l.city.n+'. Inspections and negotiation are open today.')}
+function say(l,kind){const c=l.car,t=l.seller.type,K=c.know;if(l.asked[kind])return flash('You already asked that.');l.asked[kind]=1;
+  if(kind==='prob'){const sk=c.issues.filter(i=>i.sk&&!i.fixed);let m;
+    if(t==='honest'){m=sk.length?'“Yes: '+sk.map(i=>i.label.toLowerCase()).join('; ')+'.”':'“Nothing that I know of.”';sk.forEach(i=>K.issues[i.id]=K.issues[i.id]||'seller')}
+    else if(t==='optimistic'){m=sk.length&&ch(.5)?'“Just a little '+sk[0].label.toLowerCase()+', nothing major.”':'“Nothing major, runs great.”';if(sk.length&&m.includes('little'))K.issues[sk[0].id]=K.issues[sk[0].id]||'seller'}
+    else if(t==='uninformed')m='“No idea, it was my father’s. It started fine last time.”';
+    else if(t==='flipper')m='“Freshly inspected, nothing to report. Everything’s been done.”';
+    else if(t==='scammer')m='“No problems at all! I’m abroad, so send a deposit to hold it and my agent delivers.”';
+    else m='“It passed our safety check. Sold as-is with our standard basic check.”';
+    K.said.push('Problems? '+m);S.skills.neg+=0;flash('Seller: '+m)}
+  else if(kind==='why'){const motiv=ch(.45),why=motiv?pick(['I’m moving abroad next month.','I need the cash fast.','I already bought another car.']):pick(['Just upgrading.','Don’t need it anymore.','Too many cars in the driveway.']);
+    if(motiv&&t!=='scammer'){l.reserve=Math.round(l.reserve*.97/10)*10;l.motivated=true}
+    K.said.push('Why selling? '+why);flash('Seller: “'+why+'”')}
+  addXp('neg',1)}
+function inspected(l){return l.src!=='auction'}
+function needMeet(l){if(!metToday(l)){flash('Meet the seller first (uses a visit).');return true}return false}
+function walkAround(l){if(needMeet(l))return;const c=l.car,K=c.know,out=[];l.done.walk=1;
+  c.issues.forEach(i=>{if(!i.fixed&&!K.issues[i.id]&&ch(detP(i,'walk',c))){K.issues[i.id]='walk';out.push(i.label)}});
+  K.rust=ch(.9)?c.rust:Math.max(0,c.rust-1);K.dents=c.dents;K.interior=c.interior;K.tires={tread:c.tread,winter:c.winter};
+  if(c.repaint&&ch(.6+.03*lv('appr'))){K.accident=true;out.push('overspray and uneven panel gaps')}
+  if(c.water&&ch(.7)){K.water=true;out.push('damp carpet, musty smell')}
+  if(c.rolled&&ch(.12+.05*lv('appr'))){K.odoSus=true;out.push('wear that looks too heavy for the odometer')}
+  addXp('appr',2);flash('Walk-around: '+(out.length?out.join('; ')+'. ':'nothing obvious. ')+'Rust: '+RUSTN[K.rust].toLowerCase()+', '+K.dents+' dent(s), tread about '+c.tread+'%.')}
+function testDrive(l){if(needMeet(l))return;if(!S.ins)return flash('You need active insurance to test drive. Get a policy in the Shop tab.');
+  if(l.src==='tow')return flash('No keys. It cannot be driven.');const c=l.car,K=c.know,out=[];l.done.drive=1;
+  const bad=c.issues.find(i=>!i.fixed&&i.sev===3&&(i.sys==='Engine'||i.sys==='Transmission'));
+  if(bad&&ch(.2)){K.issues[bad.id]='drive';S.listings=S.listings.filter(x=>x!==l);UI.sel=null;log('Test drive ended badly: '+bad.label.toLowerCase()+'.');return flash('The car fails on the test drive ('+bad.label.toLowerCase()+'). The seller ends the visit and delists it.')}
+  if(ch(.012)){const cost=ri(500,1500);S.cash-=cost;log('Deer strike on a test drive',-cost);return flash('A deer hits the car during the test drive. Insurance deductible and repairs: '+fmt(cost)+'.')}
+  c.issues.forEach(i=>{if(!i.fixed&&!K.issues[i.id]&&ch(detP(i,'drive',c))){K.issues[i.id]='drive';out.push(i.label)}});
+  addXp('appr',1);addXp('mech',1);flash('Test drive: '+(out.length?out.join('; ')+'.':'no noises, shifting and braking feel normal.'))}
+function obd(l){if(!S.tools.obd)return flash('You need an OBD-II scanner (Shop tab).');if(l.src==='auction')return flash('Cannot scan a car you cannot touch.');if(needMeet(l))return;
+  const c=l.car,K=c.know,out=[];c.issues.forEach(i=>{if(!i.fixed&&i.det.obd>0&&!K.issues[i.id]&&ch(detP(i,'obd',c))){K.issues[i.id]='obd';out.push(i.label)}});
+  const sus=c.masked&&c.issues.some(i=>i.det.obd>.5&&!i.fixed);addXp('mech',1);
+  flash('OBD-II: '+(out.length?'stored codes point to '+out.join('; ')+'.':'no stored codes.')+(sus?' Readiness monitors show not ready.':''))}
+function history(l){if(S.cash<35&&!hasRole('clerk'))return flash('Not enough cash.');const c=l.car,K=c.know;const cost=hasRole('clerk')?0:ri(25,50);S.cash-=cost;
+  K.hist={title:c.title,accident:c.repaint&&ch(.65),lien:c.lien?c.lien:0,odo:c.rolled&&ch(.75),clone:c.cloned&&ch(.85),reg:c.reg,use:c.use,recall:c.recall};
+  if(K.hist.odo)K.odo=true;if(K.hist.accident)K.accident=true;addXp('paper',2);log('History report on '+nameOf(c),-cost);
+  const H=K.hist,o=[];o.push('title '+H.title);if(H.accident)o.push('accident on record');if(H.lien)o.push('lien registered ('+fmt(H.lien)+')');if(H.odo)o.push('odometer inconsistency');if(H.clone)o.push('VIN mismatch with another vehicle');o.push('registration '+H.reg);o.push('past use: '+H.use);if(H.recall)o.push('open recall');
+  flash('History report ('+fmt(cost)+'): '+o.join('; ')+'.')}
+function ppi(l){if(l.src==='auction'||l.src==='dealer'||l.src==='tow')return flash('The seller will not allow an outside inspection.');if(needMeet(l))return;
+  const cost=Math.round(ri(120,250)*(S.partners.mech?.5:1));if(S.cash<cost)return flash('Not enough cash.');S.cash-=cost;const c=l.car,K=c.know,out=[];
+  c.issues.forEach(i=>{if(!i.fixed&&!K.issues[i.id]&&ch(i.det.ppi*.97)){K.issues[i.id]='ppi';out.push(i.label)}});
+  K.rust=c.rust;K.dents=c.dents;K.interior=c.interior;K.tires={tread:c.tread,winter:c.winter};K.ppi=true;K.full=true;if(c.repaint)K.accident=true;if(c.water)K.water=true;
+  addXp('mech',2);addXp('appr',2);log('Pre-purchase inspection',-cost);flash('Inspection ('+fmt(cost)+'): '+(out.length?'shop finds '+out.join('; ')+'.':'no further mechanical problems.')+' Underbody rust: '+RUSTN[c.rust].toLowerCase()+'.')}
+function mechFriend(l){if(needMeet(l))return;if(S.favours<1)return flash('Your friend is busy. Favours refill weekly.');S.favours--;const c=l.car,K=c.know;
+  const cost=c.issues.filter(i=>!i.fixed).reduce((s,i)=>s+i.parts+i.hrs*60,0),v=cost+(c.rust>=3?1500:0)+rf(-300,300);
+  const verdict=v<350?'Looks solid, nothing scary.':v<1400?'Some work needed, not crazy.':'Sketchy. I would walk away or lowball hard.';
+  const hid=c.issues.filter(i=>!i.fixed&&!K.issues[i.id]);if(hid.length&&ch(.6)){const i=pick(hid);K.issues[i.id]='friend'}
+  K.mech=verdict;addXp('net',1);addXp('mech',1);flash('Your mechanic friend: “'+verdict+'”')}
+function compression(l){if(!S.tools.comp)return flash('You need a compression and leak-down kit (Shop tab).');if(lv('mech')<2)return flash('Reading compression numbers needs Mechanical level 2.');if(needMeet(l))return;
+  const c=l.car,K=c.know,out=[];c.issues.forEach(i=>{if(!i.fixed&&i.sys==='Engine'&&i.sev>=2&&!K.issues[i.id]&&ch(.9)){K.issues[i.id]='comp';out.push(i.label)}});
+  addXp('mech',2);flash('Compression test: '+(out.length?'internal problem: '+out.join('; ')+'.':'cylinders even, no leakdown.'))}
+
+/* ---------- negotiate / buy ---------- */
+function negotiate(l,offer){offer=Math.round(offer);if(!(offer>0))return flash('Enter an offer.');const c=l.car,t=l.seller.type;
+  if(t==='scammer')return flash('Seller: “Send the deposit and we have a deal. The price is fixed.”');
+  if(t==='auction'||l.src==='auction')return;
+  const person=metToday(l);if(l.rounds>=4){S.listings=S.listings.filter(x=>x!==l);UI.sel=null;return flash('The seller is tired of haggling and delists the car.')}
+  l.rounds++;addXp('neg',1);
+  const b=.006*lv('neg')+(person?.02:0)+(l.mood>0?.01:0);
+  if(offer>=l.ask){l.deal=offer;return flash('Deal at '+fmt(offer)+'. (You offered at or above the asking price.)')}
+  if(offer>=l.reserve*(1-b)){l.deal=offer;return flash('Seller: “OK, '+fmt(offer)+' works for me.”')}
+  if(!person&&offer<l.reserve*.75&&ch(.4)){S.listings=S.listings.filter(x=>x!==l);UI.sel=null;return flash('No reply. The seller ghosted your lowball text and sold it elsewhere.')}
+  const ctr=Math.max(l.reserve,Math.round((l.ask-(l.ask-offer)*.45)/10)*10);l.ask=Math.min(l.ask,ctr);l.mood=offer<l.reserve*.8?-1:l.mood;
+  flash('Seller: “Best I can do is '+fmt(l.ask)+'.”')}
+function deposit(l){const amt=200;if(S.cash<amt)return flash('Not enough cash.');S.cash-=amt;
+  if(l.seller.type==='scammer'){S.listings=S.listings.filter(x=>x!==l);UI.sel=null;log('Deposit to a seller who vanished',-amt);flash('You sent '+fmt(amt)+' by e-transfer. The listing disappears and the seller stops answering.')}
+  else{l.deal=l.deal||l.ask;flash('Deposit sent. The seller holds the car for you.');log('Holding deposit',-amt);S.cash+=amt}}
+function quote(l){const c=l.car,price=l.deal||l.ask,d=l.src==='dealer',au=l.src==='auction'||l.src==='tow';
+  const fee=l.src==='auction'?price*.1:0,gst=d?price*RG.dealer:0,qst=d?0:(price+fee)*RG.priv;
+  const reg=RG.regFee+(c.reg==='oop'?120:0)+(c.reg==='riv'?160:0),insp=(!d&&(c.reg!=='valid'||c.title!=='clean'))?150:0,insC=S.ins?0:insM();
+  const base=price+fee+gst,regC=qst+reg+insp,tow=l.tow,bl=blockers(c);
+  const why=au?'Auction and tow-lot cars have no plates, so they must be towed.':c.title==='irreparable'?'Irreparable title: it cannot be registered.':(!d&&bl.length)?'Would fail the safety inspection ('+bl[0].toLowerCase()+').':'';
+  return{price,fee,gst,qst,reg,insp,insC,base,regC,tow,why,drive:base+regC+insC,towT:base+tow}}
+function tryRegister(c,cost){ // returns true on success
+  if(c.title==='irreparable'){flash('The '+RG.auth+' refuses to register an irreparable vehicle.');return false}
+  const bl=blockers(c);if(bl.length&&!c.dealerOK){flash('Failed the safety inspection: '+bl.join('; ')+'. Repair these first.');return false}
+  if(c.cloned){S.cars=S.cars.filter(x=>x!==c);UI.sel=null;S.credit-=10;log('Police seized '+nameOf(c)+' (cloned VIN)',0);flash('The '+RG.auth+' flags this VIN as belonging to another vehicle. Police seize the car. You lose the purchase price.');return false}
+  if(c.lien&&!c.lienPaid){c.lienFlag=true;flash('A lien of '+fmt(c.lien)+' is registered against this car. Pay it off in the garage before registering.');return false}
+  let fee=cost;const pe=clamp(.2-.018*lv('paper')-(hasRole('clerk')?.1:0),.01,.2);
+  if(ch(pe)){const x=ri(60,150);fee+=x;flash('The '+RG.auth+' bounces your forms. Extra fees '+fmt(x)+' and a day lost to resubmitting.');spend(6)}
+  if(S.cash<fee){flash('You need '+fmt(fee)+' to register.');return false}
+  S.cash-=fee;c.basis+=fee;c.regd=true;c.reg='valid';addXp('paper',3);log('Registered '+nameOf(c),-fee);return true}
+function buy(l,mode){const q=quote(l);const c=l.car;if(!(metToday(l)||l.src==='dealer'&&l.met===S.day)&&l.src!=='auction')return flash('Meet the seller to complete the sale.');
+  if(S.cars.length>=S.slots)return flash('No free parking spot. Sell a car or rent another spot in the Shop.');
+  if(mode==='drive'&&q.why)return flash(q.why);
+  const need=mode==='drive'?q.base+q.regC+q.insC:q.towT;if(S.cash<need)return flash('You need '+fmt(need)+' for this option.');
+  S.listings=S.listings.filter(x=>x!==l);c.basis=Math.round(q.base);c.origin={type:l.seller.type,src:l.src,name:l.seller.name};S.cash-=Math.round(q.base);c.bought=S.day;c.idle=0;c.dealerOK=l.src==='dealer';
+  const nm=nameOf(c);log('Bought '+nm,-Math.round(q.base));S.cars.push(c);UI.sel={t:'C',id:c.uid};UI.tab='garage';UI.offer='';
+  if(l.src==='dealer'){c.reg='valid';c.issues.forEach(i=>{if(i.block)i.fixed=true})}
+  if(mode==='tow'){S.cash-=q.tow;c.basis+=q.tow;log('Towing '+nm,-q.tow);flash('Bought for '+fmt(q.base)+'. Towed home for '+fmt(q.tow)+'. Taxes are due when you register it.');return afterBuy(c,l)}
+  if(!S.ins){S.cash-=q.insC;S.ins=true;S.insBilled=S.day;c.basis+=q.insC;log('Insurance, first month',-q.insC)}
+  const ok=tryRegister(c,q.regC);
+  if(!ok&&S.cars.includes(c)){S.cash-=q.tow;c.basis+=q.tow;log('Towing '+nm,-q.tow)}
+  else if(ok)flash('Bought, registered and driven home. Total '+fmt(c.basis)+'.');
+  afterBuy(c,l,ok)}
+function afterBuy(c,l,drove){if(!S.cars.includes(c))return;const bad=c.issues.find(i=>!i.fixed&&i.sev===3&&i.sys==='Engine'&&!c.know.issues[i.id]);
+  if(drove&&bad&&ch(.35)){c.know.issues[bad.id]='failed';const t=ri(100,200);S.cash-=t;c.basis+=t;flash('The engine fails on the drive home ('+bad.label.toLowerCase()+'). Tow bill '+fmt(t)+'.');log('Breakdown on drive home',-t)}}
+function bid(l,max){max=Math.round(max);const q=null;if(S.cars.length>=S.slots)return flash('No free parking spot.');
+  if(!(max>0))return flash('Enter your maximum bid.');if(max<l.reserve){S.listings=S.listings.filter(x=>x!==l);UI.sel=null;log('Outbid at auction on '+nameOf(l.car));return flash('You were outbid. The car sold for more than your maximum.')}
+  l.deal=l.reserve;const qq=quote(l),need=qq.towT;if(S.cash<need)return flash('You would need '+fmt(need)+' (price, 10% fee and towing).');
+  const c=l.car;S.cash-=need;c.basis=Math.round(need);c.bought=S.day;c.idle=0;S.listings=S.listings.filter(x=>x!==l);S.cars.push(c);UI.sel={t:'C',id:c.uid};UI.tab='garage';
+  log('Won auction: '+nameOf(c),-Math.round(need));flash('You won at '+fmt(l.reserve)+' plus fee and towing. Check what you bought.')}
+/* ---------- garage actions ---------- */
+const CB=id=>S.cars.find(c=>c.uid===id);
+const GRADE={new:[1,.02],after:[.72,.08],used:[.45,.18]};
+function spend(h){S.hrs-=h;while(S.hrs<0){S.hrs+=6;newDay()}}
+function endDay(){newDay();S.hrs=6}
+function diagnose(c){if(c.job)return flash('The car is in the shop.');const K=c.know;spend(1.5);let n=0;
+  c.issues.forEach(i=>{if(!i.fixed&&!K.issues[i.id]&&ch(.3+.06*lv('mech'))){K.issues[i.id]='diag';n++}});
+  K.rust=c.rust;K.dents=c.dents;K.interior=c.interior;K.tires={tread:c.tread,winter:c.winter};if(c.repaint)K.accident=true;if(c.water)K.water=true;
+  if(!c.issues.some(i=>!i.fixed&&!K.issues[i.id]))K.full=true;addXp('mech',2);flash('You spend the afternoon under the car. '+(n?n+' new problem(s) found.':'Nothing new found.'))}
+function repair(c,id,how){const i=c.issues.find(x=>x.id===id);if(!i||i.fixed)return;if(c.job)return flash('The car is already in the shop.');
+  const g=GRADE[UI.parts],parts=Math.round(i.parts*g[0]),L=lv('mech');let cost,hrs=i.hrs*Math.max(.55,1.55-.1*L);
+  if(how==='diy'){cost=parts;if(S.cash<cost)return flash('Not enough cash for parts ('+fmt(cost)+').');
+    S.cash-=cost;c.basis+=cost;spend(hrs);addXp('mech',i.sev*2);
+    const bad=clamp(.3-.032*L,.03,.3)*(i.sev===3&&L<3?1.8:1)+g[1];
+    if(ch(bad)){c.latent.push({label:i.label,cost:Math.round(parts*1.2),due:S.day+ri(7,45)});flash('You finish the job: '+i.label.toLowerCase()+'. It feels right.')}
+    else flash('Fixed: '+i.label.toLowerCase()+'.');i.fixed=true;log('DIY: '+i.label,-cost)}
+  else{const rate=(115)*(S.partners.mech?.75:1);cost=Math.round(parts*1.15+i.hrs*rate);if(S.cash<cost)return flash('The shop quotes '+fmt(cost)+'.');
+    S.cash-=cost;c.basis+=cost;const days=Math.ceil(i.hrs/8)+ri(0,2)+(UI.parts==='used'?0:1);c.job={done:S.day+days,fix:[i.id],kind:'repair',desc:i.label,sev:i.sev};
+    flash('Shop job booked: '+i.label.toLowerCase()+' for '+fmt(cost)+', ready in about '+days+' day(s).');log('Shop: '+i.label,-cost)}}
+function bodyFix(c,what,how){if(c.job)return flash('The car is in the shop.');const L=lv('body');let parts,hrs,done;
+  if(what==='dent'){if(!c.dents)return;parts=40;hrs=3;done=()=>c.dents--}
+  else if(what==='rust'){if(c.rust<1||c.rust>3)return flash('Nothing more can be done about that.');parts=[0,60,350,800][c.rust];hrs=[0,4,10,16][c.rust];done=()=>{c.rust--}}
+  const sh=Math.round(parts*1.2+hrs*115*(S.partners.mech?.75:1));
+  if(how==='diy'){hrs*=Math.max(.55,1.55-.1*L);if(S.cash<parts)return flash('Not enough cash for materials.');S.cash-=parts;c.basis+=parts;spend(hrs);addXp('body',3);
+    if(what==='rust'&&c.rust===3&&L<3&&ch(.5)){c.latent.push({label:'Rust repair bubbled through',cost:400,due:S.day+ri(10,40)});flash('You patch the rust. It looks fine for now.')}else flash('Body repair done.');done();log('DIY body: '+what,-parts)}
+  else{if(S.cash<sh)return flash('The body shop quotes '+fmt(sh)+'.');S.cash-=sh;c.basis+=sh;const d=Math.ceil(hrs/8)+2;c.job={done:S.day+d,kind:'body',desc:what,fn:what};c.job.fn=what;flash('Body shop booked for '+fmt(sh)+', ready in '+d+' days.');log('Body shop: '+what,-sh)}}
+function finishJob(c){const j=c.job;c.job=null;
+  if(j.kind==='repair'){const i=c.issues.find(x=>x.id===j.fix[0]);if(i){i.fixed=true;if(j.sev>=2)c.receipts=Math.min(3,c.receipts+1);if(ch(.03))c.latent.push({label:i.label,cost:Math.round(i.parts),due:S.day+ri(7,40)})}log('Shop finished: '+j.desc)}
+  else if(j.kind==='body'){if(j.fn==='dent')c.dents=Math.max(0,c.dents-1);else if(c.rust>0)c.rust--;log('Body shop finished: '+j.desc)}
+  else if(j.kind==='recall'){c.recall=false;log('Recall repair done on '+nameOf(c))}}
+function register(c){const e=CAT[c.cid],q=(c.price||c.basis)*.8;const cost=Math.round(q*RG.priv+RG.regFee+(c.reg==='oop'?120:0)+((c.reg!=='valid'||c.title!=='clean')?150:0)+(c.dealerOK?-q*RG.priv:0));
+  if(tryRegister(c,cost))flash('Registered. Plates on, you can legally sell and drive it.')}
+function payLien(c){if(S.cash<c.lien)return flash('You need '+fmt(c.lien)+'.');S.cash-=c.lien;c.basis+=c.lien;c.lienPaid=true;c.lienFlag=false;log('Paid lien on '+nameOf(c),-c.lien);flash('Lien cleared.')}
+function tires(c){const cost=Math.round(ri(500,900)*(CAT[c.cid].cls==='truck'||CAT[c.cid].cls==='suv'?1.15:1));if(S.cash<cost)return flash('Tires cost about '+fmt(cost)+'.');S.cash-=cost;c.basis+=cost;c.tread=95;log('New tires',-cost);flash('New all-season tires, '+fmt(cost)+'.')}
+function winterSet(c){const cost=520;if(c.winter)return;if(S.cash<cost)return flash('A winter set costs '+fmt(cost)+'.');S.cash-=cost;c.basis+=cost;c.winter=true;log('Winter tire set',-cost);flash('Winter tires fitted.')}
+function detail(c,how){if(c.detail)return;if(how==='diy'){if(S.cash<30)return flash('Need $30 of supplies.');S.cash-=30;c.basis+=30;spend(5)}
+  else{const cost=S.partners.det?90:ri(150,300);if(S.cash<cost)return flash('Detailing costs '+fmt(cost)+'.');S.cash-=cost;c.basis+=cost;log('Detailing',-cost)}
+  c.detail=true;flash('Detailed. It photographs better.')}
+function recall(c){if(!c.recall||c.job)return;c.job={done:S.day+2,kind:'recall',desc:'recall'};flash('Dealer recall repair booked, free, 2 days.')}
+function listCar(c){const ask=Math.round(+UI.sell.ask);if(!(ask>0))return flash('Set an asking price.');if(c.lien&&!c.lienPaid)return flash('You cannot sell with a lien on it.');
+  const cost=[0,30,75][UI.sell.ad];if(S.cash<cost)return flash('Not enough cash for the ad.');S.cash-=cost;c.basis+=cost;if(cost)log('Ad promotion',-cost);
+  const rec=S.sales.filter(d=>d>S.day-365).length;
+  c.sale={ask,disc:UI.sell.disc,ad:UI.sell.ad,listed:S.day};flash('Listed at '+fmt(ask)+'. Buyers will start writing.'+(!S.lic&&rec>=4?' Careful: private sellers who flip more than 5 cars a year get flagged as unlicensed dealers.':''))}
+function sellPrice(c,f){return Math.round(worth(c,'true')*mkt(c)*f/10)*10}
+function removeCar(c){S.cars=S.cars.filter(x=>x!==c);S.offers=S.offers.filter(o=>o.uid!==c.uid);UI.sel=null}
+function wholesale(c){if(c.lien&&!c.lienPaid)return flash('A dealer will not touch a car with a lien.');const p=sellPrice(c,rf(.7,.8))*(c.recall?.9:1);closeSale(c,Math.round(p),'wholesale')}
+function scrapCar(c){closeSale(c,scrapV(c)+(c.issues.some(i=>i.sys==='Exhaust'&&!i.fixed)?0:120),'scrap')}
+function partOut(c){spend(12);const p=Math.round(scrapV(c)*1.3+(c.issues.some(i=>i.sys==='Engine'&&i.sev>=2&&!i.fixed)?0:250)+(c.issues.some(i=>i.sys==='Transmission'&&i.sev>=2&&!i.fixed)?0:200)+(c.tread>50?100:0)+150);closeSale(c,p,'parts')}
+function closeSale(c,price,kind){const profit=price-c.basis,nm=nameOf(c);S.cash+=price;
+  const share=Object.values(S.partners).filter(Boolean).length*.05;if(profit>0&&share){const x=Math.round(profit*share);S.cash-=x;log('Partner share',-x)}
+  removeCar(c);log('Sold '+nm+' ('+kind+')',price);S.stats.flips++;S.stats.profit+=profit;S.stats.best=Math.max(S.stats.best,profit);S.credit+=profit>0?14:-3;staffSale(profit);
+  flash('Sold '+nm+' for '+fmt(price)+'. '+(profit>=0?'Profit ':'Loss ')+fmt(Math.abs(profit))+' on '+fmt(c.basis)+' invested.');
+  if(kind==='private'||kind==='wholesale'&&false){}
+  if(kind==='private'){S.sales.push(S.day);const rec=S.sales.filter(d=>d>S.day-365).length;
+    if(!S.lic&&rec>5){const f=ri(800,2500);S.cash-=f;S.rep-=8;log('Curbstoning notice from the OPC',-f);flash('Sold, but the OPC flags you as an unlicensed dealer: fine '+fmt(f)+'. Get a dealer licence in the Shop.')}
+    const K=c.know,hid=c.issues.filter(i=>!i.fixed),knownHid=hid.filter(i=>K.issues[i.id]),unk=hid.filter(i=>!K.issues[i.id]&&i.sev>=2);
+    const fraud=!c.sale.disc&&(knownHid.length||(c.rolled&&K.odo)),faith=unk.length||c.latent.length;
+    if(fraud&&ch(.75))S.claims.push({day:S.day+ri(3,25),kind:'fraud',price});
+    else if(faith&&ch(.4))S.claims.push({day:S.day+ri(3,25),kind:'faith',price:(unk[0]?unk[0].parts:c.latent[0].cost)});
+    if(S.lic&&ch(.12))S.claims.push({day:S.day+ri(5,30),kind:'warranty',price:hid.length?hid[0].parts:300});
+    if(profit>0&&c.sale.disc)S.rep=Math.min(100,S.rep+2)}
+}
+function offerAct(id,act){const o=S.offers.find(x=>x.id===id);if(!o)return;if(o.type==='swap')return swapAct(o,act);const c=CB(o.uid);if(!c){S.offers=S.offers.filter(x=>x!==o);return}
+  if(act==='no'){S.offers=S.offers.filter(x=>x!==o);return flash('Declined.')}
+  if(act==='yes'){if(o.type==='scam'){const x=ri(300,900);S.cash-=x;S.offers=S.offers.filter(y=>y!==o);S.rep-=0;log('Fake cheque overpayment scam',-x);return flash('The cheque bounces after you wired back the “overpayment”. You lost '+fmt(x)+'. The car is still yours.')}
+    if(o.type==='flaky'&&ch(.35)){S.offers=S.offers.filter(y=>y!==o);return flash('The buyer never shows up.')}
+    if(c.regd===false&&!c.dealerOK&&false){}
+    closeSale(c,o.amt,'private')}
+  if(act==='ctr'){const p=Math.round(+UI.offer);if(!(p>0))return flash('Enter your counter price.');
+    if(p<=o.amt)return offerAct(id,'yes');
+    if(p<=o.willing){o.amt=p;return flash('Buyer: “OK, '+fmt(p)+'. Let’s do it.”')}
+    if(p<=o.willing*1.08&&ch(.5)){o.amt=Math.round((p+o.willing)/2/10)*10;return flash('Buyer: “I can do '+fmt(o.amt)+' today.”')}
+    if(ch(.5)){S.offers=S.offers.filter(y=>y!==o);return flash('The buyer walks away.')}flash('Buyer: “No, too high for me.”')}}
+
+/* ---------- time ---------- */
+function newDay(){
+  S.day++;S.visits=visMax();if(S.day%7===0)S.favours=Math.min(3,S.favours+1+(lv('net')>=3?1:0));
+  if(S.gas>0)S.gas--;else if(ch(.012)){S.gas=ri(14,26);log('Gas price spike: trucks and SUVs soften, compacts firm up.')}
+  if(S.day%30===0)monthly();
+  S.cars.forEach(c=>{c.idle++;if(c.job&&c.job.done<=S.day)finishJob(c);events(c)});
+  S.claims=S.claims.filter(cl=>{if(cl.day>S.day)return true;claim(cl);return false});
+  S.listings=S.listings.filter(l=>{if(S.day>l.expires||ch(.035+(l.ask<worth(l.car,'true')*mkt(l.car)*.95?.05:0))&&l.src!=='dealer'){return false}
+    if(S.day-l.posted>7&&ch(.15)&&l.src==='classified'){l.ask=Math.max(l.reserve,Math.round(l.ask*.95/25)*25);l.reserve=Math.round(l.reserve*.97/10)*10}return true});
+  if(UI.sel&&UI.sel.t==='L'&&!LB(UI.sel.id))UI.sel=null;
+  let spawn=ri(2,4);while(spawn-->0&&S.listings.length<20)S.listings.push(genListing());
+  stepMarket();staffDaily();stakesDaily();suitsDaily();transitDaily();if(S.day%7===0){refreshPitches();genImports()}buyers();genSwaps();S.offers=S.offers.filter(o=>o.exp>=S.day&&CB(o.uid));
+  checkEnd()}
+function monthly(){let t=0;divs();staffMonthly();if(S.ins){const c=insM();t+=c;log('Insurance',-c)}const r=(S.slots-1)*120;if(r){t+=r;log('Extra garage rent',-r)}
+  if(S.debt>0){const i=Math.round(S.debt*.022);S.debt+=i;log('Loan interest added',-i)}
+  S.cash-=t;if(S.cash<0){S.credit-=25;log('Account overdrawn, credit score drops')}else S.credit+=2;
+  S.cars.forEach(c=>{S.cash-=0})}
+function events(c){const m=monthN();
+  if(c.idle>8&&!c.dead&&ch(.03)){c.dead=true;const i=mkIssue({k:'bat',label:'Dead battery',sys:'Electrical',sev:1,lo:120,hi:180,hrs:.5,pen:.01,det:{walk:1,drive:1,obd:0,ppi:1},block:false});c.issues.push(i);c.know.issues[i.id]='event';log('Dead battery on '+nameOf(c))}
+  if(ch(.008)&&c.tread>10){S.cash-=35;c.basis+=35;log('Flat tire patched',-35)}
+  if((m>=11||m<=3)&&ch(.01)&&!c.issues.some(i=>i.k==='rod'&&!i.fixed)){const t={k:'rod',label:'Rodent-chewed wiring',sys:'Electrical',sev:2,lo:200,hi:700,hrs:5,pen:.05,det:{walk:.3,drive:.3,obd:.4,ppi:.8},block:false};c.issues.push(mkIssue(t));log('Mice got into '+nameOf(c)+'. Check the wiring.')}
+  if(ch(.004)){c.dents++;c.know.dents=c.dents;log('Vandalism: new dent on '+nameOf(c))}
+  if(ch(.0015)){const v=S.ins?Math.round(worth(c,'true')*.7):0;S.cash+=v;removeCar(c);log(nameOf(c)+' was stolen'+(v?', insurance paid':', no insurance'),v);flash('Theft: '+nameOf(c)+' is gone.'+(v?' Insurance pays '+fmt(v)+'.':''));return}
+  c.latent=c.latent.filter(x=>{if(S.day<x.due)return true;const i=mkIssue({k:'re',label:'Repeat failure: '+x.label,sys:'Repair',sev:2,lo:x.cost,hi:x.cost,hrs:3,pen:.05,det:{walk:.5,drive:.5,obd:.3,ppi:.9},block:false});c.issues.push(i);c.know.issues[i.id]='failed';log('Earlier repair failed on '+nameOf(c));return false})}
+function claim(cl){openSuit(cl);return;let x;
+  if(cl.kind==='fraud'){x=Math.round(cl.price*rf(.4,.9)+350);S.rep=Math.max(0,S.rep-18);S.credit-=20;log('Lawsuit: buyer claims you hid known defects',-x)}
+  else if(cl.kind==='faith'){x=Math.round(cl.price*.5);S.rep=Math.max(0,S.rep-3);log('Buyer complaint about a hidden fault',-x)}
+  else{x=Math.round(cl.price*1.1);log('Dealer warranty claim',-x)}S.cash-=x;flash('Claim against you: '+fmt(x)+'.')}
+function buyers(){S.cars.filter(c=>c.sale).forEach(c=>{const s=c.sale,mv=worth(c,s.disc?'known':'seen')*mkt(c),ratio=s.ask/mv;
+  let f=ratio<.85?1.7:ratio<.95?1.3:ratio<1.05?.9:ratio<1.15?.5:ratio<1.3?.2:.07;
+  f*=(1+.07*lv('mkt'))*[1,1.35,1.8][s.ad]*(c.detail?1.12:1)*(S.lic?1.2:1)*(1+.2*effS('sales'))*(.85+S.rep/330)*Math.max(.5,1-(S.day-s.listed)*.01)*.55;
+  if(winterSoon()&&!c.winter&&monthN()!==10)f*=.45;if(!c.regd&&!c.dealerOK)f*=.8;
+  if(!ch(Math.min(.85,f)))return;let r=R();if(effS('sales')&&r<.46&&ch(.5*Math.min(1,effS('sales')/1.5)))r=.5+R()*.5;let o={id:S.lid++,uid:c.uid,exp:S.day+2};
+  if(r<.25){o.type='low';o.amt=Math.round(mv*rf(.58,.76)/10)*10;o.willing=Math.round(o.amt*rf(1.05,1.18)/10)*10;o.msg='Cash buyer, wants a quick deal.'}
+  else if(r<.4){o.type='flaky';o.amt=Math.round(Math.min(s.ask,mv*rf(.86,.96))/10)*10;o.willing=Math.round(o.amt*1.04/10)*10;o.msg='Says he will come tomorrow.'}
+  else if(r<.46){o.type='scam';o.amt=Math.round(s.ask*rf(1.05,1.2)/10)*10;o.willing=o.amt;o.msg='Offers above asking by cheque. Wants you to wire the difference to his shipping agent.'}
+  else{o.type='ok';o.amt=Math.round(Math.min(s.ask,mv*rf(.88,1))/10)*10;o.willing=Math.round(Math.max(o.amt,mv*rf(.97,1.03))/10)*10;o.msg='Looked at the pictures twice, wants to see it.'}
+  S.offers.push(o)})}
+function checkEnd(){const nw=netWorth();S.peak=Math.max(S.peak,nw);
+  if(S.cash<-2500&&!S.over){if(S.mode==='iron')S.over='bankrupt';else{S.cars.forEach(c=>{S.cash+=scrapV(c)});S.cars=[];S.cash=Math.max(0,S.cash);S.debt=0;S.credit=450;S.rep=Math.max(0,S.rep-20);log('Bankruptcy: assets liquidated');flash('Bankruptcy. Your cars were scrapped and your credit is wrecked.')}}
+  if(S.mode==='twelve'&&!S.over){if(nw>=20000)S.over='won';else if(S.day>=365)S.over='timeout'}}
+/* ---------- loans, investments, staff, swaps ---------- */
+function loanLimit(){const T=[[0,100],[610,500],[625,1000],[650,2500],[700,5000],[760,10000]];let l=0;T.forEach(t=>{if(S.credit>=t[0])l=t[1]});return l}
+const TICK=[
+ {s:'MIX',n:'Maple Index ETF',k:'etf',p0:24.5,d:.0003,v:.008,y:.018},
+ {s:'GLB',n:'Global Equity ETF',k:'etf',p0:41,d:.00032,v:.009,y:.015},
+ {s:'BND',n:'Canadian Bond ETF',k:'etf',p0:18,d:.00012,v:.0025,y:.032},
+ {s:'DIV',n:'Dividend Growth ETF',k:'etf',p0:32,d:.00028,v:.007,y:.035},
+ {s:'LRL',n:'Laurentian Rail',k:'stock',p0:62,d:.0003,v:.016,y:.01},
+ {s:'EST',n:'Estrie Lumber',k:'stock',p0:14.2,d:.0002,v:.022,y:0},
+ {s:'NCL',n:'Nordic Cell Tech',k:'stock',p0:88,d:.0004,v:.028,y:0},
+ {s:'AUT',n:'Autoflip Marketplace',k:'stock',p0:27,d:.0003,v:.02,y:0}];
+const nrm=()=>(R()+R()+R()+R()-2)*1.732;
+function ensureInv(){S.emps=S.emps||{scout:0,det:0,mech:0,sales:0,clerk:0};if(S.auto==null)S.auto=true;S.hold=S.hold||{};
+  if(!S.mk){S.mk={};TICK.forEach(t=>{let p=t.p0;const h=[];for(let i=0;i<40;i++){p*=1+t.d+t.v*nrm();h.push(+p.toFixed(2))}S.mk[t.s]=h})}}
+const px=s=>{const h=S.mk[s];return h[h.length-1]};
+function portfolio(){if(!S.mk||!S.hold)return 0;return Object.keys(S.hold).reduce((s,k)=>s+S.hold[k].u*px(k),0)}
+function stepMarket(){if(!S.mk)return;const crash=ch(.004)?rf(.05,.12):0;if(crash)log('Markets sell off '+Math.round(crash*100)+'% in a day.');
+  TICK.forEach(t=>{const h=S.mk[t.s];let r=t.d+t.v*nrm();if(t.k==='stock'&&ch(.012))r+=(ch(.5)?-1:1)*rf(.04,.1);if(t.k==='etf'&&ch(.004))r+=(ch(.6)?-1:1)*rf(.02,.04);
+    if(t.s!=='BND')r-=crash;h.push(+Math.max(.5,h[h.length-1]*(1+r)).toFixed(2));if(h.length>60)h.shift()})}
+const FEE=5;
+function invBuy(sym,amt){amt=Math.round(+amt);if(!(amt>=20))return flash('The minimum trade is $20.');if(S.cash<amt+FEE)return flash('Not enough cash (amount plus the $5 fee).');
+  const p=px(sym),h=S.hold[sym]||(S.hold[sym]={u:0,cost:0});S.cash-=amt+FEE;h.u+=amt/p;h.cost+=amt;log('Bought '+sym,-(amt+FEE));flash('Bought '+fmt(amt)+' of '+sym+' at $'+p.toFixed(2)+'.')}
+function invSell(sym,amt,all){const h=S.hold[sym];if(!h||h.u<=0)return flash('You hold none.');const p=px(sym),val=h.u*p,sv=all?val:Math.min(val,+amt);if(!(sv>=1))return flash('Enter an amount to sell.');
+  const frac=(sv/p)/h.u;h.cost-=h.cost*frac;h.u-=sv/p;if(h.u<1e-6||all)delete S.hold[sym];S.cash+=sv-FEE;log('Sold '+sym,sv-FEE);flash('Sold '+fmt(sv)+' of '+sym+'. Proceeds '+fmt(sv-FEE)+' after the $5 fee.')}
+function divs(){if(!S.mk)return;let t=0;TICK.forEach(k=>{const h=S.hold[k.s];if(h&&k.y)t+=h.u*px(k.s)*k.y/12});if(t>=1){S.cash+=t;log('Dividends',Math.round(t))}}
+/* car exchange offers */
+function genSwaps(){S.cars.forEach(c=>{if(c.job||S.offers.some(o=>o.type==='swap'&&o.uid===c.uid))return;if(!ch(c.sale?0.06:0.02))return;
+  const mine=worth(c,c.sale&&!c.sale.disc?'seen':'known')*mkt(c);let best=null,bd=1e9;
+  for(let i=0;i<8;i++){const e=CAT[ri(0,CAT.length-1)],d=Math.abs(e.base-mine*1.1);if(d<bd){bd=d;best=e}}
+  const type=wpick([{k:'honest',w:45},{k:'optimistic',w:25},{k:'uninformed',w:5},{k:'flipper',w:20},{k:'scammer',w:5}]).k;
+  const city=CITIES[0],car=genCar(best,type,'classified',city);
+  const l={id:0,car,src:'classified',city,seller:{type,name:pick(NAMES),claims:'private'},met:S.day,asked:{},done:{},mood:0,rounds:0,deal:0};l.text=adText(l);
+  const theirs=worth(car,'seen')*mkt(car),cash=Math.round((mine*rf(.9,1)-theirs*rf(.92,1.02))/10)*10;
+  S.offers.push({id:S.lid++,type:'swap',uid:c.uid,exp:S.day+3,l,cash,maxCash:Math.round((cash+Math.abs(mine)*rf(.03,.1))/10)*10,
+    msg:pick(['Likes your car and offers a trade.','Needs something different for winter and wants to swap.','Has a car that suits his family better and offers a swap.'])})})}
+function swapTool(o,tool){o.l.met=S.day;const l=o.l;
+  if(tool==='walk')walkAround(l);else if(tool==='drive')testDrive(l);else if(tool==='obd')obd(l);else if(tool==='hist')history(l)}
+function swapAct(o,act){const c=CB(o.uid),n=o.l.car;
+  if(act==='no'){S.offers=S.offers.filter(x=>x!==o);return flash('Declined the swap.')}
+  if(act==='ctr'){if(UI.offer===''||isNaN(+UI.offer))return flash('Enter the cash you want from them (negative if you would pay).');const p=Math.round(+UI.offer);
+    if(p<=o.cash)return swapAct(o,'yes');
+    if(p<=o.maxCash){o.cash=p;return flash('“OK, '+(p>=0?'I’ll add ':'you add ')+fmt(Math.abs(p))+'. Deal.”')}
+    if(ch(.5)){S.offers=S.offers.filter(x=>x!==o);return flash('They walk away from the swap.')}return flash('“Too much, sorry.”')}
+  if(o.cash<0&&S.cash<-o.cash)return flash('You need '+fmt(-o.cash)+' to cover the difference.');
+  const mine=worth(c,'known')*mkt(c),nm=nameOf(c),nn=nameOf(n),oldBasis=c.basis;
+  S.cash+=o.cash;n.basis=Math.max(0,Math.round(oldBasis-o.cash));n.bought=S.day;n.idle=0;n.regd=n.reg==='valid';n.dealerOK=false;
+  removeCar(c);S.cars.push(n);S.stats.flips++;S.stats.profit+=mine-oldBasis;S.credit+=mine>oldBasis?8:-2;if(!S.lic)S.sales.push(S.day);
+  log('Swapped '+nm+' for '+nn,o.cash);UI.sel={t:'C',id:n.uid};UI.tab='garage';
+  flash('Swap done: you now own '+nn+(o.cash?' ('+(o.cash>0?'received ':'paid ')+fmt(Math.abs(o.cash))+')':'')+'. Check what you got.')}
+/* ---------- staff: applicants, contracts, performance ---------- */
+const ROLES={
+ scout:{n:'Scout',w:550,d:'Finds discounted leads. Skilled scouts find more and better ones.'},
+ det:{n:'Detailer',w:500,d:'Details cars in your garage. Slow ones miss days.'},
+ clerk:{n:'Paperwork clerk',w:600,d:'Free history reports and fewer registration errors.'},
+ mech:{n:'Mechanic',w:900,d:'Repairs problems you already know about when the repair pays off. Bad ones botch jobs.'},
+ body:{n:'Body tech',w:750,d:'Fixes dents and surface rust at material cost.'},
+ sales:{n:'Salesperson',w:700,d:'Brings in more buyers, screens scams and holds price in counters.'}};
+const CT={
+ perm:{n:'Permanent',desc:'Full monthly salary. Severance of one month if let go after 3 months.'},
+ term:{n:'3-month term',desc:'5% cheaper. Letting them go early costs half the remaining wages.'},
+ comm:{n:'Commission',desc:'40% base salary plus 8% of each sale profit. Only fits sales and mechanics.'},
+ free:{n:'Freelance',desc:'No salary. Paid per job, works about half the days.'}};
+const FN=['Alex','Sam','Jordan','Maya','Ravi','Chloé','Tom','Isabelle','Omar','Nico','Priya','Félix','Dana','Remy','Lena','Carlos'];
+const LN=['Tremblay','Gagnon','Roy','Singh','Lavoie','Khan','Bouchard','Morin','Clarke','Pelletier','Nguyen','Gauthier'];
+const TRAITS=[['Fast but sloppy',.3,-.25],['Methodical',-.1,.2],['Great with people',0,.1],['Often late',0,-.2],['Quiet, reliable',0,.25],['Overconfident',.4,-.1],['Eager to learn',-.2,.1]];
+function newCand(role){const trait=pick(TRAITS),skill=clamp(rf(1.2,7.8)+(R()<.1?2:0),1,9.5),exp=Math.max(0,Math.round(skill*rf(.5,1.6)+ri(-1,2))),rel=clamp(rf(.35,.95)+trait[2],.15,.98);
+  const claim=clamp(skill+trait[1]*2+rf(-.8,.8),1,10),mw=ROLES[role].w,ask=Math.round(mw*(.62+.075*claim)/50)*50;
+  return{id:S.uid++,name:pick(FN)+' '+pick(LN),role,skill,rel,exp,claim,trait:trait[0],ask,ref:Math.round(clamp(rel*5+skill*.25+rf(-.8,.8),1,5)*10)/10,iv:0,tried:0,age:0}}
+function refreshPool(){S.pool=(S.pool||[]).filter(c=>c.age<18);S.pool.forEach(c=>c.age++);
+  while(S.pool.length<7){const keys=Object.keys(ROLES);S.pool.push(newCand(pick(keys)))}}
+const est=e=>{const noise=Math.max(.3,2.5-e.exp/8-(e.jobs||0)/12);return clamp(e.skill+noise*(((e.id*7919)%100)/100-.5)*2,1,10)};
+const wage=(e)=>e.contract==='perm'?e.wage:e.contract==='term'?Math.round(e.wage*.95):e.contract==='comm'?Math.round(e.wage*.4):0;
+function candWage(c,ct){return Math.round(c.ask*(ct==='term'?1:1)/10)*10}
+function interview(id){const c=S.pool.find(x=>x.id===id);if(!c||c.iv)return;if(S.cash<40)return flash('An interview costs $40.');S.cash-=40;c.iv=1;log('Interview with '+c.name,-40);flash('Interview done. '+c.name+': “'+(c.skill>6?'I have done this a lot.':'I am still learning.')+'” Your read of the skill is tighter now.')}
+function maxStaff(){return 2+S.slots}
+function hireCand(id,ct){const c=S.pool.find(x=>x.id===id);if(!c)return;if(S.staff.length>=maxStaff())return flash('You can employ '+maxStaff()+' people. Rent more parking to grow.');
+  if((ct==='comm'&&c.role!=='sales'&&c.role!=='mech')||(ct==='free'&&!['mech','det','body'].includes(c.role)))return flash('That contract does not fit this role.');
+  if(c.role==='scout'&&S.staff.some(e=>e.role==='scout'))return flash('One scout is enough.');
+  S.pool=S.pool.filter(x=>x!==c);S.staff.push({id:c.id,name:c.name,role:c.role,skill:c.skill,rel:c.rel,exp:c.exp*12,contract:ct,wage:c.ask,start:S.day,end:ct==='term'?S.day+90:0,morale:70,jobs:0,ok:0,since:S.day,raise:0,renew:0,earn:0});
+  log('Hired '+c.name+' ('+ROLES[c.role].n+', '+CT[ct].n+')');flash(c.name+' starts today on a '+CT[ct].n.toLowerCase()+' contract.')}
+function fireEmp(id){const e=S.staff.find(x=>x.id===id);if(!e)return;let pay=0;
+  if(e.contract==='perm'&&S.day-e.start>90)pay=e.wage;
+  if(e.contract==='term'&&e.end>S.day)pay=Math.round(wage(e)*(e.end-S.day)/30*.5);
+  if(S.cash<pay)return flash('You cannot afford the '+fmt(pay)+' severance.');S.cash-=pay;S.staff=S.staff.filter(x=>x!==e);log('Let go: '+e.name,-pay);flash(e.name+' let go'+(pay?'. Severance '+fmt(pay):'')+'.')}
+function raiseAct(id,yes){const e=S.staff.find(x=>x.id===id);if(!e||!e.raise)return;if(yes){e.wage=Math.round(e.wage*1.1/10)*10;e.morale=Math.min(100,e.morale+10);flash(e.name+' gets a 10% raise.')}else{e.morale-=15;flash(e.name+' is disappointed.')}e.raise=0}
+function renewAct(id,yes){const e=S.staff.find(x=>x.id===id);if(!e||!e.renew)return;e.renew=0;if(yes){e.end=S.day+90;flash('Renewed for 3 months.')}else{S.staff=S.staff.filter(x=>x!==e);flash(e.name+' leaves.')}}
+const perf=e=>{const f=(1+(e.skill-5)*.08)*(.75+.35*e.rel);return clamp(f,.4,1.6)};
+const emp=r=>S.staff.filter(e=>e.role===r);
+const effS=r=>emp(r).reduce((s,e)=>s+(e.contract==='free'&&ch(.5)?0:perf(e)),0);
+function payroll(){return S.staff.reduce((s,e)=>s+wage(e),0)}
+function pay(e,amt,why){S.cash-=amt;e.earn+=amt;log(why,-amt)}
+function staffMonthly(){let t=0;S.staff.slice().forEach(e=>{const w=wage(e);if(w){t+=w;S.cash-=w}e.exp++;
+    e.skill=Math.min(10,e.skill+(e.jobs>3?.05:.015)*(1.2-e.rel*.3));e.morale=clamp(e.morale+ri(-8,6)+(w>=e.wage*.9?1:-3),0,100);
+    if(!e.raise&&e.contract!=='free'&&S.day-e.since>150&&ch(.25)&&S.day-(e.lastRaise||e.start)>150){e.raise=1;e.lastRaise=S.day}
+    if(e.morale<18&&ch(.5)){S.staff=S.staff.filter(x=>x!==e);log(e.name+' quit');flash(e.name+' quit.')}});
+  if(t)log('Staff wages',-t)}
+function staffDaily(){
+  S.staff.forEach(e=>{if(e.contract==='term'&&e.end<=S.day&&!e.renew&&!e.expired){e.renew=1;e.renewBy=S.day+5;e.expired=1}if(e.renew&&e.renewBy<S.day){S.staff=S.staff.filter(x=>x!==e);log(e.name+' left after the contract ended')}});
+  if(S.day%6===0)refreshPool();
+  const sc=effS('scout');if(sc&&ch(.2+.12*sc)){const l=genListing({lead:true});if(sc>1.1)l.ask=Math.round(l.ask*.95/25)*25;S.listings.push(l)}
+  emp('det').forEach(e=>{const c=S.cars.find(x=>!x.detail&&!x.job);if(c&&ch(.4+.4*perf(e)*(e.contract==='free'?.5:1))){c.detail=true;e.jobs++;if(e.contract==='free')pay(e,95,'Detailer invoice');log('Detailed '+nameOf(c))}});
+  emp('body').forEach(e=>{if(e.contract==='free'&&ch(.5))return;const c=S.cars.find(x=>!x.job&&(x.dents>0||x.rust===1||x.rust===2));if(!c||!ch(.35*perf(e)))return;
+    const mat=c.dents?40:[0,60,350][c.rust];if(S.cash<mat+300)return;S.cash-=mat;c.basis+=mat;if(c.dents)c.dents--;else c.rust--;e.jobs++;if(e.contract==='free')pay(e,140,'Body tech invoice');log('Body tech worked on '+nameOf(c),-mat)});
+  emp('mech').forEach(e=>{if(!S.auto||(e.contract==='free'&&ch(.5)))return;
+    for(const c of S.cars){if(c.job)continue;const K=c.know;
+      const x=c.issues.filter(i=>!i.fixed&&K.issues[i.id]).map(i=>{const g=Math.round(i.parts*.72),b=worth(c,'known');i.fixed=true;const a=worth(c,'known');i.fixed=false;return{i,g,gain:a-b}})
+        .filter(y=>y.gain*.9>y.g+40||(y.i.block&&y.i.sev>=2)).sort((a,b)=>a.g-b.g).find(y=>S.cash>=y.g+300);
+      if(!x)continue;const bot=clamp(.2-.022*e.skill,.02,.2)*(1.5-e.rel);S.cash-=x.g;c.basis+=x.g;x.i.fixed=true;e.jobs++;
+      if(x.i.sev>=2)c.receipts=Math.min(3,c.receipts+1);if(ch(bot)){c.latent.push({label:x.i.label,cost:x.g,due:S.day+ri(7,40)});e.morale-=2}else e.ok++;
+      if(e.contract==='free')pay(e,Math.round(x.i.hrs*70),'Mechanic invoice');log(e.name+' fixed '+x.i.label.toLowerCase()+' on '+nameOf(c),-x.g);break}});
+  if(S.pool&&S.pool.length===0)refreshPool()}
+function staffSale(profit){if(profit<=0)return;S.staff.forEach(e=>{if(e.contract==='comm'){const b=Math.round(profit*.08);S.cash-=b;e.earn+=b;log('Commission to '+e.name,-b)}})}
+/* ---------- angel investing ---------- */
+const IDEAS=[['Mobile pre-purchase inspection app','auto'],['Winter tire subscription service','auto'],['Parts marketplace for older Japanese cars','auto'],['VIN fraud detection scanner','auto'],['Battery reuse for old hybrids','auto'],['Used-car financing for newcomers','fin'],['Meal-prep delivery for shift workers','food'],['Fleet maintenance software','soft'],['Mobile car wash vans','service'],['Dash-cam insurance discounts','fin'],['Rust-proofing franchise','auto'],['Rural tow-truck dispatch app','soft']];
+const PRE=['Torque','Lotus','Nord','Brique','Pivot','Cobalt','Alloy','Quill','Maple','Ember','Vantage','Sable'],SUF=['Labs','Works','.io','Co.','Systems','Motors','Collective'];
+function newPitch(){const [idea,sec]=pick(IDEAS),q=R();const rev=ri(0,q>.5?9000:3500),team=ri(1,5),ask=pick([500,1000,1500,2500,4000]);
+  const eq=Math.round(clamp(ask/(ri(60,300)*1000)*100*rf(.6,1.6),1,25)*10)/10;
+  const flags=[];if(R()>q+.25)flags.push(pick(['Projects 400% growth with almost no customers','Founder shut down two earlier ventures','Revenue figures cannot be matched to bank statements','Valuation is 40x revenue']));
+  if(q>.7&&ch(.5))flags.push('none');
+  return{id:S.uid++,name:pick(PRE)+' '+pick(SUF),idea,sec,q,rev,team,ask,eq,flags:flags.filter(f=>f!=='none'),dd:0,exp:S.day+14,
+    pitch:pick(['We turn a $4 billion pain into a weekend app.','Every dealer has this problem. We fixed it for 3 garages already.','Pre-revenue but the waitlist is growing.','Profitable on a small scale and ready to hire.']),
+    claimed:Math.round(rev*(R()>q+.2?rf(1.8,3.5):rf(.9,1.2)))}}
+function refreshPitches(){S.pitches=(S.pitches||[]).filter(p=>p.exp>S.day);while(S.pitches.length<3)S.pitches.push(newPitch())}
+function dueDiligence(id){const p=S.pitches.find(x=>x.id===id);if(!p||p.dd)return;if(S.cash<100)return flash('Due diligence costs $100.');S.cash-=100;p.dd=1;addXp('appr',2);log('Due diligence on '+p.name,-100);
+  flash('Diligence on '+p.name+': real monthly revenue '+fmt(p.rev)+' (pitched '+fmt(p.claimed)+'). Team of '+p.team+'. '+(p.flags.length?'Red flags: '+p.flags.join('; ')+'.':'No red flags found.'))}
+function angelInvest(id,haggle){const p=S.pitches.find(x=>x.id===id);if(!p)return;if(S.cash<p.ask)return flash('You need '+fmt(p.ask)+'.');let eq=p.eq;
+  if(haggle){if(ch(.35+.03*lv('neg'))){eq=Math.round(eq*1.25*10)/10;flash('They accept '+eq+'% for the same cheque.')}else{S.pitches=S.pitches.filter(x=>x!==p);return flash('The founders walk away from your terms.')}}
+  S.cash-=p.ask;S.pitches=S.pitches.filter(x=>x!==p);const r=R()-(p.q-.5)*.55;let out;
+  if(r<.5)out={m:0,t:'shut down'};else if(r<.72)out={m:rf(.4,1),t:'sold for a small amount'};else if(r<.9)out={m:rf(1.5,4),t:'raised a follow-on and sold'};else out={m:rf(8,25),t:'was acquired by a larger company'};
+  S.stakes.push({id:p.id,name:p.name,idea:p.idea,amt:p.ask,eq,at:S.day,exit:S.day+ri(75,420),out,mark:1});log('Angel investment in '+p.name,-p.ask);flash('You invested '+fmt(p.ask)+' for '+eq+'% of '+p.name+'. The money is locked until an exit.')}
+function stakesDaily(){S.stakes=S.stakes.filter(s=>{
+  if(ch(.012)){s.mark=clamp(s.mark*(ch(.5)?rf(1.1,1.4):rf(.6,.9)),0,5);}
+  if(S.day<s.exit)return true;const v=Math.round(s.amt*s.out.m);S.cash+=v;log(s.name+' '+s.out.t,v);flash(s.name+' '+s.out.t+'. You receive '+fmt(v)+' on '+fmt(s.amt)+' invested.');return false})}
+const stakesVal=()=>(S.stakes||[]).reduce((t,s)=>t+s.amt*Math.min(1.5,s.mark)*.6,0);
+
+/* ---------- lawsuits ---------- */
+const LAW={self:{n:'Represent yourself',cost:0,b:0},para:{n:'Paralegal',cost:450,b:.08},lawyer:{n:'Lawyer',cost:1800,b:.17}};
+function openSuit(cl){const hid=cl.kind==='fraud';
+  const s={id:S.uid++,role:'def',kind:cl.kind,title:{fraud:'Buyer alleges concealed defects or odometer fraud',faith:'Buyer alleges a hidden fault',warranty:'Dealer warranty claim'}[cl.kind],amt:Math.round(cl.kind==='fraud'?cl.price*rf(.4,.9)+350:cl.kind==='faith'?cl.price*.5:cl.price*1.1),
+    merit:cl.kind==='fraud'?.78:cl.kind==='faith'?.45:.6,ev:cl.ev||0,counsel:'self',due:S.day+12,stage:'served',trial:0,fee:0,docs:cl.docs||0};
+  S.suits.push(s);log('Served with a lawsuit: '+s.title);flash('You were served: '+s.title+'. Claim '+fmt(s.amt)+'. Respond within 12 days or you lose by default.')}
+function suitAct(id,act,v){const s=S.suits.find(x=>x.id===id);if(!s)return;
+  if(act==='counsel'){const c=LAW[v];if(S.cash<c.cost)return flash('You need '+fmt(c.cost)+'.');if(s.counsel!=='self')return flash('You already have counsel.');S.cash-=c.cost;s.counsel=v;s.fee+=c.cost;log('Legal fees',-c.cost);return flash(c.n+' retained.')}
+  if(act==='settle'){const pct=s.role==='def'?(.55+.25*s.merit):(.5+.1*(1-s.merit));const x=Math.round(s.amt*pct/10)*10;
+    if(s.role==='def'){if(S.cash<x)return flash('You need '+fmt(x)+'.');S.cash-=x;log('Settled lawsuit',-x);flash('Settled for '+fmt(x)+'. Reputation protected.')}
+    else{S.cash+=x;log('Settlement received',x);flash('They settle for '+fmt(x)+'.')}s.stage='closed';return}
+  if(act==='defend'||act==='go'){if(s.stage!=='served'&&s.stage!=='draft')return;s.stage='trial';s.trial=S.day+ri(14,45);return flash((s.role==='def'?'You file your defence':'The claim is filed')+'. Hearing set for '+fmtDate(s.trial)+'.')}
+  if(act==='drop'){s.stage='closed';return flash('Withdrawn.')}}
+function fileSuit(cid,ground){const c=CB(cid);if(!c||!c.origin)return flash('Nothing to claim against.');if(S.cash<110)return flash('The filing fee is $110.');const o=c.origin,K=c.know;let amt=0,merit=0,ev=0,t='';
+  if(o.type==='scammer')return flash('The seller cannot be traced. There is no one to sue.');
+  if(ground==='odo'){if(!c.rolled||!K.odo)return flash('You have no evidence of an odometer rollback. A history report or inspection could provide it.');amt=Math.round(worth(c,'true')*.35);merit=.85;ev=1;t='Odometer fraud'}
+  else if(ground==='defect'){const h=c.issues.filter(i=>!i.fixed&&i.sk&&K.issues[i.id]&&i.sev>=2);if(!h.length)return flash('No known serious defect that the seller knew about.');amt=Math.round(h.reduce((s,i)=>s+i.parts*1.3,0));merit=.65;ev=K.ppi?1:.5;t='Concealed defect: '+h[0].label.toLowerCase()}
+  else if(ground==='title'){if(!K.hist||K.hist.title===c.adTitle)return flash('The history report shows no title misrepresentation.');amt=Math.round(worth(c,'known')*.3);merit=.8;ev=1;t='Misrepresented title'}
+  else if(ground==='dealer'){if(o.src!=='dealer'||S.day-c.bought>30)return flash('Statutory warranty claims apply to dealer purchases within 30 days.');const h=c.issues.filter(i=>!i.fixed&&K.issues[i.id]&&i.sev>=2);if(!h.length)return flash('No serious problem on record.');amt=Math.round(h[0].parts*1.4);merit=.7;ev=.7;t='Dealer warranty: '+h[0].label.toLowerCase()}
+  amt=Math.max(amt,200);if(amt>15000)amt=15000;S.cash-=110;S.suits.push({id:S.uid++,role:'pl',kind:ground,title:t+' ('+nameOf(c)+')',amt,merit,ev,counsel:'self',due:0,stage:'draft',trial:0,fee:110,docs:0,seller:o.name});log('Filed claim: '+t,-110);flash('Claim drafted for '+fmt(amt)+'. Choose counsel, then file, or settle.')}
+function suitsDaily(){S.suits.forEach(s=>{
+  if(s.stage==='served'&&s.due<S.day){s.stage='closed';const x=Math.round(s.amt*1.15);S.cash-=x;S.rep=Math.max(0,S.rep-5);log('Default judgment',-x);flash('You missed the deadline. Default judgment: '+fmt(x)+'.')}
+  if(s.stage==='trial'&&s.trial<=S.day){const p=clamp(s.merit*.55+s.ev*.2+LAW[s.counsel].b+.08*lv('paper')/3+(s.role==='def'?.08*(1-s.merit):0)+rf(-.1,.1),.03,.95),win=s.role==='pl'?R()<p:R()>p;s.stage='closed';
+    if(s.role==='pl'){if(win){const g=Math.round(s.amt*rf(.7,1));S.cash+=g;S.rep=Math.min(100,S.rep+1);log('Won claim against seller',g);flash('You won. Damages awarded '+fmt(g)+'.')}else{log('Lost claim',0);flash('The judge dismissed your claim.')}}
+    else{if(win){const x=Math.round(s.amt*rf(.85,1.15));S.cash-=x;S.rep=Math.max(0,S.rep-(s.kind==='fraud'?18:3));if(s.kind==='fraud')S.credit-=15;log('Lost lawsuit',-x);flash('You lost the case. Judgment against you: '+fmt(x)+'.')}else{S.rep=Math.min(100,S.rep+3);log('Won lawsuit defence',0);flash('The court dismissed the claim against you.')}}}});
+  S.suits=S.suits.filter(s=>s.stage!=='closed'||S.day-(s.closedAt||(s.closedAt=S.day))<30)}
+/* ---------- international imports / exports ---------- */
+const JPM=['Toyota','Honda','Nissan','Mazda','Mitsubishi','Lexus','Acura','Subaru'],DEM=['BMW','Audi','Mercedes-Benz','Volkswagen','Mini'];
+const IMP={
+ us:{n:'United States (Midwest)',days:8,ship:450,broker:150,duty:0,comp:0,idx:.86,cls:{truck:.9,suv:.9,van:.9,sport:.95},ok:e=>true,note:'Rust-free trucks and SUVs. Trade-agreement duty is 0%.'},
+ jp:{n:'Japan (Yokohama)',days:45,ship:2300,broker:300,duty:.061,comp:0,idx:.8,cls:{compact:.6,hatch:.62,sport:.62,conv:.62},ok:e=>JPM.includes(e.make)&&e.year<=2011,note:'Only 15+ year old cars can be imported. 6.1% duty. Cheap compacts and sports cars.'},
+ de:{n:'Germany (Hamburg)',days:30,ship:1800,broker:300,duty:0,comp:1100,idx:.8,cls:{},ok:e=>DEM.includes(e.make)&&e.year<=2011,note:'15+ year old European cars. $1,100 to bring lights and labels to Canadian standard.'}};
+const EXP={
+ us:{n:'United States (Northeast)',days:6,ship:350,fee:.03,risk:.02,idx:e=>(e.cls==='truck'?1.06:1)},
+ mx:{n:'Mexico',days:12,ship:650,fee:.05,risk:.05,idx:e=>(e.cls==='truck'||e.cls==='van'?1.22:e.cls==='lux'?.85:.95)},
+ cb:{n:'Caribbean',days:35,ship:1400,fee:.06,risk:.06,idx:e=>(['compact','sedan','hatch'].includes(e.cls)?1.18:e.cls==='truck'?1.1:.95)},
+ eu:{n:'Europe (Rotterdam)',days:28,ship:1700,fee:.04,risk:.02,idx:e=>(['sport','conv','lux'].includes(e.cls)?1.15:(e.drv==='AWD'||e.drv==='4WD')?1.1:.88)}};
+const RIVF=325;
+function genImports(){S.imports=[];Object.keys(IMP).forEach(k=>{const P=IMP[k];for(let n=0;n<3;n++){let l=null;
+    for(let t=0;t<80;t++){const g=genListing({cheap:true});if(P.ok(CAT[g.car.cid])&&g.seller.type!=='dealer'){l=g;break}}
+    if(!l)continue;const c=l.car,e=CAT[c.cid],f=(P.cls[e.cls]||P.idx)*rf(.95,1.05);l.src='import';l.imp=k;l.city={n:P.n,v:9,tow:0,adj:1};l.ask=Math.round(l.ask*f/25)*25;l.reserve=l.ask;l.expires=S.day+ri(8,20);
+    if(c.rust>=2&&ch(.65))c.rust=Math.max(0,c.rust-ri(1,2));c.reg='riv';c.shown=c.shown;l.text=l.text.replace(/Winter tires .*$/,'')||'Export-ready.';S.imports.push(l)}})}
+function impQuote(l){const P=IMP[l.imp],e=CAT[l.car.cid],price=l.ask,ship=P.ship+(e.cls==='truck'||e.cls==='van'?200:0),duty=Math.round(P.duty*(price+ship)),gst=Math.round(.05*(price+ship+duty));
+  return{price,ship,broker:P.broker,duty,gst,comp:P.comp,riv:RIVF,total:price+ship+P.broker+duty+gst+P.comp+RIVF,days:P.days}}
+function impInspect(l){const cost=180;if(S.cash<cost)return flash('A remote inspection costs $180.');S.cash-=cost;const c=l.car,K=c.know,out=[];
+  c.issues.forEach(i=>{if(!i.fixed&&!K.issues[i.id]&&ch(i.det.ppi*.75)){K.issues[i.id]='ppi';out.push(i.label)}});K.rust=ch(.8)?c.rust:Math.max(0,c.rust-1);K.dents=c.dents;K.interior=c.interior;K.tires={tread:c.tread,winter:c.winter};
+  if(c.repaint&&ch(.7))K.accident=true;addXp('appr',2);log('Remote inspection',-cost);flash('Partner inspector ('+fmt(cost)+'): '+(out.length?out.join('; ')+'.':'no further problems found.'))}
+function importOrder(l){const q=impQuote(l);if(S.cash<q.total)return flash('You need '+fmt(q.total)+' to place this order.');
+  S.cash-=q.total;S.imports=S.imports.filter(x=>x!==l);const c=l.car;c.basis=q.total;c.reg='riv';c.regd=false;c.dealerOK=false;
+  const fraud=l.seller.type==='scammer'&&ch(.55);S.transit.push({id:S.uid++,dir:'in',car:c,from:IMP[l.imp].n,arr:S.day+q.days+ri(0,4),cost:q.total,fraud,stor:0,held:0});
+  UI.sel=null;log('Ordered '+nameOf(c)+' from '+IMP[l.imp].n,-q.total);flash('Ordered. Shipping takes about '+q.days+' days. You pay '+fmt(q.total)+' now. Duties, shipping and brokerage are in that total; provincial tax comes at registration.')}
+const expIdx=(c,k)=>EXP[k].idx(CAT[c.cid])*(c.rust<=1?1.04:1);
+function expEst(c,k){const[lo,hi]=estimate(c),mid=(lo+hi)/2*expIdx(c,k)/ (1),E=EXP[k];return Math.round(mid-E.ship-mid*E.fee)}
+function exportCar(cid,k){const c=CB(cid);if(!c)return;if(c.job)return flash('The car is in the shop.');if(c.lien&&!c.lienPaid)return flash('Pay off the lien first.');
+  if(c.title==='irreparable')return flash('Irreparable cars cannot be exported for resale.');const E=EXP[k];
+  const price=Math.round(worth(c,'true')*mkt(c)*expIdx(c,k)*rf(.94,1.06)/10)*10,fee=Math.round(price*E.fee),net=price-fee-E.ship;
+  removeCar(c);S.transit.push({id:S.uid++,dir:'out',car:c,to:E.n,arr:S.day+E.days+ri(0,3),net,price,risk:E.risk,held:0});log('Shipped '+nameOf(c)+' to '+E.n);flash('Shipped to '+E.n+'. Payment of about '+fmt(net)+' is due on arrival in roughly '+E.days+' days.')}
+function transitDaily(){S.transit=S.transit.filter(t=>{if(t.arr>S.day)return true;
+  if(!t.held&&ch(.1)){t.held=1;t.arr=S.day+ri(3,9);log('Customs hold on '+nameOf(t.car));return true}
+  if(t.dir==='out'){if(ch(t.risk)){const rec=Math.round(t.net*.4);S.cash+=rec;S.credit-=5;log('Foreign buyer defaulted on '+nameOf(t.car)+'. Insurance covered part.',rec);flash('The foreign buyer defaulted. You recovered only '+fmt(rec)+'.');return false}
+    const c=t.car,profit=t.net-c.basis;S.cash+=t.net;S.stats.flips++;S.stats.profit+=profit;S.stats.best=Math.max(S.stats.best,profit);S.credit+=profit>0?12:-3;staffSale(profit);
+    log('Export payment received for '+nameOf(c),t.net);flash('Export complete: '+fmt(t.net)+' received. '+(profit>=0?'Profit ':'Loss ')+fmt(Math.abs(profit))+'.');return false}
+  if(t.fraud){log('The overseas seller vanished with '+fmt(t.cost),0);flash('The overseas seller never shipped the car. '+fmt(t.cost)+' is gone. Lesson: inspect and verify remote sellers.');S.credit-=8;return false}
+  if(S.cars.length>=S.slots){t.stor++;S.cash-=15;if(t.stor===1)flash('Your imported car arrived but there is no free spot. Port storage costs $15 a day.');if(t.stor>30){log('Port auctioned '+nameOf(t.car));return false}return true}
+  const c=t.car;if(ch(.08)){c.dents+=ri(1,3);flash('The car arrived with shipping damage.');}c.bought=S.day;c.idle=0;S.cars.push(c);log('Imported car cleared customs: '+nameOf(c));flash(nameOf(c)+' has arrived. Register it before you drive it. It needs an inspection first.');return false})}
+/* ---------- theme, accounts, saves, new game ---------- */
+let CLOUD={db:null,uid:null,name:'',ready:false,slot:1,meta:{},busy:false,auto:true,last:'',t:0};
+function getPref(k,d){try{const v=localStorage.getItem('ll-'+k);return v==null?d:v}catch(e){return d}}
+function setPref(k,v){try{localStorage.setItem('ll-'+k,v)}catch(e){}}
+function applyTheme(){const t=getPref('theme','system'),r=document.documentElement;if(t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t)}
+function cycleTheme(){const o=['system','light','dark'],n=o[(o.indexOf(getPref('theme','system'))+1)%3];setPref('theme',n);applyTheme();render()}
+const themeLabel=()=>({system:'Theme: auto',light:'Theme: light',dark:'Theme: dark'}[getPref('theme','system')]);
+async function packState(){const o=JSON.parse(JSON.stringify(S));let j=JSON.stringify(o);
+  async function gz(str){if(typeof CompressionStream==='undefined')return null;const cs=new CompressionStream('gzip'),w=cs.writable.getWriter();w.write(new TextEncoder().encode(str));w.close();
+    const buf=new Uint8Array(await new Response(cs.readable).arrayBuffer());let b='';for(let i=0;i<buf.length;i+=8192)b+=String.fromCharCode.apply(null,buf.subarray(i,i+8192));return btoa(b)}
+  let z=await gz(j);if(z==null)return{enc:'raw',d:j.length<240000?j:JSON.stringify(Object.assign(o,{listings:[],imports:[]}))};
+  if(z.length>240000){o.listings=[];o.imports=[];z=await gz(JSON.stringify(o))}return{enc:'gz',d:z}}
+async function unpackState(p){if(p.enc==='raw')return JSON.parse(p.d);const bin=atob(p.d),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  const ds=new DecompressionStream('gzip'),w=ds.writable.getWriter();w.write(u);w.close();return JSON.parse(await new Response(ds.readable).text())}
+const slotRef=n=>CLOUD.db.collection('data/users/'+CLOUD.uid).doc('slot'+n);
+async function initCloud(){try{if(!window.claude||!window.claude.use)return;const[db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user)return;CLOUD.uid=await user.id();if(!CLOUD.uid)return;try{const me=await user.me();CLOUD.name=me&&me.name||''}catch(e){}
+    CLOUD.db=db;CLOUD.ready=true;CLOUD.auto=getPref('cloudauto','1')==='1';await refreshSlots();render()}catch(e){}}
+async function refreshSlots(){if(!CLOUD.ready)return;for(let n=1;n<=3;n++){try{const s=await slotRef(n).get();CLOUD.meta[n]=s.exists?s.data().meta:null}catch(e){CLOUD.meta[n]=null}}}
+const metaOf=()=>({day:S.day,date:fmtDate(),cash:Math.round(S.cash),nw:Math.round(netWorth()),region:RG.name,mode:S.mode,at:Date.now()});
+async function saveCloud(n,quiet){if(!CLOUD.ready||CLOUD.busy)return;CLOUD.busy=true;try{const p=await packState(),m=metaOf();await slotRef(n).set({meta:m,enc:p.enc,d:p.d});CLOUD.meta[n]=m;CLOUD.slot=n;CLOUD.last=sig();if(!quiet)flash('Saved to cloud slot '+n+'.')}
+  catch(e){if(!quiet)flash('Cloud save failed ('+(e&&e.code||'error')+'). Your browser save is still kept.')}CLOUD.busy=false;if(!quiet)render()}
+async function loadCloud(n){if(!CLOUD.ready)return;try{const s=await slotRef(n).get();if(!s.exists)return flash('That slot is empty.');const st=await unpackState(s.data());S=st;setRegion(S.region);ensureAll();CLOUD.slot=n;CLOUD.last=sig();
+    UI={tab:'market',sel:null,flash:['Loaded cloud slot '+n+'.'],offer:'',parts:'new',menu:false,start:false,filt:{src:'all',sort:'new',max:0},sell:{ask:'',disc:true,ad:0}}}catch(e){flash('Could not load that save.')}render()}
+async function delCloud(n){if(!CLOUD.ready)return;try{await slotRef(n).delete();CLOUD.meta[n]=null}catch(e){}render()}
+const sig=()=>S.day+':'+Math.round(S.cash)+':'+S.cars.length+':'+S.log.length+':'+S.suits.length;
+function cloudSoon(){if(!CLOUD.ready||!CLOUD.auto||S.over)return;const g=sig();if(g===CLOUD.last)return;clearTimeout(CLOUD.t);CLOUD.t=setTimeout(()=>saveCloud(CLOUD.slot,true),9000)}
+function ensureAll(){ensureInv();S.staff=S.staff||[];S.pool=S.pool||[];S.pitches=S.pitches||[];S.stakes=S.stakes||[];S.suits=S.suits||[];S.imports=S.imports||[];S.transit=S.transit||[];S.region=S.region||'qc';
+if(!S.pool.length)refreshPool();if(!S.pitches.length)refreshPitches();if(!S.imports.length&&S.listings)genImports()}
+function startGame(region,mode){S=newState(mode);S.region=region;setRegion(region);applyPlayer();ensureAll();seedMarket();genImports();refreshPool();refreshPitches();
+  UI={tab:'market',sel:null,flash:['Welcome to '+RG.name+'. You have $2,000. Taxes, registration and insurance all come out of it.'],offer:'',parts:'new',menu:false,start:false,pickReg:region,pickMode:mode,pl:UI.pl,filt:{src:'all',sort:'new',max:0},sell:{ask:'',disc:true,ad:0}};render()}
+const transitVal=()=>(S.transit||[]).reduce((t,x)=>t+(x.dir==='in'?(x.fraud?0:x.cost*.7):x.net),0);
+/* ---------- rendering ---------- */
+const $r=()=>document.getElementById('root');
+function svgCar(cls,col){const roof={compact:'46,40 66,18 130,18 156,40',hatch:'44,40 62,18 138,18 158,40',sedan:'42,40 66,20 126,20 152,40',suv:'38,40 48,16 158,16 168,40',van:'34,40 40,14 160,14 170,40',truck:'44,40 62,18 106,18 120,40',sport:'50,40 82,26 120,26 150,40',lux:'40,40 66,20 128,20 156,40',conv:'52,40 62,30 116,30 130,40'}[cls]||'46,40 66,18 130,18 156,40';
+  return '<svg viewBox="0 0 200 76" class="car" aria-hidden="true"><ellipse cx="100" cy="69" rx="82" ry="4" fill="var(--line)"/>'+(cls==='truck'?'<rect x="118" y="30" width="58" height="12" rx="2" fill="'+col+'"/>':'')+
+  '<polygon points="'+roof+'" fill="var(--win)" stroke="'+col+'" stroke-width="7" stroke-linejoin="round"/><rect x="18" y="38" width="166" height="23" rx="9" fill="'+col+'"/>'+
+  '<circle cx="56" cy="61" r="12" fill="#1a1d20"/><circle cx="56" cy="61" r="5" fill="#8a949a"/><circle cx="148" cy="61" r="12" fill="#1a1d20"/><circle cx="148" cy="61" r="5" fill="#8a949a"/></svg>'}
+const tag=(t,c)=>'<span class="tag '+(c||'')+'">'+t+'</span>';
+const btn=(a,label,o)=>{o=o||{};return '<button class="btn '+(o.c||'')+'" data-a="'+a+'"'+(o.id!=null?' data-id="'+o.id+'"':'')+(o.v!=null?' data-v="'+o.v+'"':'')+(o.dis?' disabled':'')+'>'+label+'</button>'};
+const SRC={classified:'Private',dealer:'Dealer',auction:'Auction',tow:'Tow lot'};
+function stat(l,v,c){return '<div class="stat">'+l+'<b class="'+(c||'')+'">'+v+'</b></div>'}
+function headerHTML(){const nw=netWorth();
+  return '<header class="hd"><div class="brand">Lot <i>&amp;</i> Ledger<small>'+RG.name+' · CAD · '+CAT.length+' models</small></div><div class="stats">'+
+  stat('Date',fmtDate())+stat('Cash',fmt(S.cash),S.cash<0?'bad':'')+stat('Net worth',fmt(nw))+(S.debt?stat('Debt',fmt(S.debt),'bad'):'')+stat('Visits',S.visits+'/'+visMax())+stat('Work hrs',S.hrs.toFixed(1))+
+  '</div><div class="acts">'+btn('endday','End day',{c:'pri'})+btn('wait7','+7 days')+btn('theme','Theme')+btn('menu','⋯')+'</div></header>'}
+function tabsHTML(){const n=S.offers.length,t=[['market','Market',S.listings.length],['garage','Garage',S.cars.length+'/'+S.slots],['offers','Offers',n||''],['trade','Trade',S.transit.length||''],['staff','Staff',S.staff.length||''],['invest','Invest',''],['legal','Legal',S.suits.filter(s=>s.stage!=='closed').length||''],['shop','Shop',''],['ledger','Ledger','']];
+  return '<nav class="tabs">'+t.map(a=>'<button class="tab '+(UI.tab===a[0]?'on':'')+'" data-a="tab" data-v="'+a[0]+'">'+a[1]+(a[2]!==''?'<em>'+a[2]+'</em>':'')+'</button>').join('')+'</nav>'}
+function stripHTML(){const l=S.log[0],w=[];
+  if(winterReq())w.push('<span class="w">'+(winLaw()?'Winter tires mandatory until '+(RG.id==='bc'?'Mar 31':'Mar 15'):'Winter season: buyers want winter tires')+'</span>');else if(winterSoon())w.push('<span class="w">'+(winLaw()?'Winter tires mandatory from '+(RG.id==='bc'?'Oct 1':'Dec 1'):'Winter is coming')+': cars without them are a hard sell</span>');
+  if(S.gas>0)w.push('<span class="w">Gas spike: '+S.gas+' days left</span>');
+  const rec=S.sales.filter(d=>d>S.day-365).length;if(!S.lic&&rec>=4)w.push('<span class="w">'+rec+' private sales this year: licence risk</span>');
+  return '<div class="strip">'+(l?'<span>Latest: '+l.m+(l.$?' ('+fmt(l.$)+')':'')+'</span>':'<span>Tip: you have $2,000. Price, taxes, registration, insurance and repairs all come out of it.</span>')+w.join('')+'</div>'}
+function overHTML(){if(!S.over)return '';const m={won:'You turned $2,000 into $20,000. Challenge complete.',timeout:'Twelve months are up and you fell short of $20,000.',bankrupt:'Bankruptcy. The ironman save is over.'}[S.over];return '<div class="over"><b>'+m+'</b><div class="row" style="margin-top:8px">'+btn('newgame','Start over',{v:S.mode})+'</div></div>'}
+
+/* market */
+function listCard(l){const c=l.car,e=CAT[c.cid],sel=UI.sel&&UI.sel.t==='L'&&UI.sel.id===l.id;
+  return '<button class="lc '+(sel?'sel':'')+'" data-a="selL" data-id="'+l.id+'">'+svgCar(e.cls,c.color[1])+'<div><b>'+nameOf(c)+'</b><span class="s">'+c.shown.toLocaleString('en-CA')+' km · '+c.eng+' · '+c.tr+' · '+e.drv+' · '+l.city.n+'</span><div class="tags">'+
+  tag(SRC[l.src],l.src==='classified'?'':'a')+(l.lead?tag('Lead','g'):'')+(l.deal?tag('Deal agreed','g'):'')+(S.day-l.posted<=1?tag('New'):'')+tag((l.src==='auction'?'ends in ':'')+Math.max(0,l.expires-S.day)+'d')+'</div></div><div class="pr">'+fmt(l.deal||l.ask)+'<small>'+(l.src==='auction'?'opening bid':'asking')+'</small></div></button>'}
+function marketHTML(){const F=UI.filt;let ls=S.listings.filter(l=>(F.src==='all'||l.src===F.src)&&(!F.max||l.ask<=F.max));
+  ls=ls.slice().sort((a,b)=>F.sort==='lo'?a.ask-b.ask:F.sort==='hi'?b.ask-a.ask:b.posted-a.posted||a.ask-b.ask);
+  const chips=['all','classified','dealer','auction','tow'].map(s=>'<button class="chip '+(F.src===s?'on':'')+'" data-a="fsrc" data-v="'+s+'">'+(s==='all'?'All':SRC[s])+'</button>').join('');
+  return '<div class="filters">'+chips+'<select id="fsort" data-a="fsort"><option value="new"'+(F.sort==='new'?' selected':'')+'>Newest</option><option value="lo"'+(F.sort==='lo'?' selected':'')+'>Price low</option><option value="hi"'+(F.sort==='hi'?' selected':'')+'>Price high</option></select>'+
+  '<select id="fmax" data-a="fmax"><option value="0">Any price</option>'+[2000,3500,5000,8000].map(x=>'<option value="'+x+'"'+(F.max===x?' selected':'')+'>Up to '+fmt(x)+'</option>').join('')+'</select></div>'+
+  (ls.length?ls.map(listCard).join(''):'<div class="empty">Nothing matches. New listings arrive every day.</div>')}
+function fx(c){const K=c.know,o=[];
+  Object.keys(K.issues).forEach(id=>{const i=c.issues.find(x=>x.id===id);if(i&&!i.fixed)o.push('<div class="iss"><div class="t"><b>'+i.label+'</b> <span class="mute">'+i.sys+' · est. '+fmt(i.lo)+'–'+fmt(i.hi)+' parts</span></div><div>'+tag({walk:'seen',drive:'felt',obd:'code',ppi:'shop',seller:'seller said',diag:'diagnosed',friend:'friend',comp:'tested',failed:'failed',event:'event'}[K.issues[id]]||'found','a')+'</div></div>')});
+  const L=[];if(K.rust!=null)L.push('Rust: '+RUSTN[K.rust]);if(K.dents!=null)L.push(K.dents+' dent(s)');if(K.interior!=null)L.push('Interior: '+INTN[K.interior]);if(K.tires)L.push('Tires '+K.tires.tread+'% tread'+(K.tires.winter?', winter':''));
+  if(K.accident)L.push('Signs of accident repair');if(K.water)L.push('Water damage');if(K.odoSus)L.push('Odometer looks suspicious');if(K.mech)L.push('Friend: '+K.mech);
+  if(K.hist){const H=K.hist;L.push('Report: title '+H.title+(H.lien?', lien '+fmt(H.lien):'')+(H.odo?', odometer inconsistency':'')+(H.clone?', VIN mismatch':'')+', '+H.use+' use')}
+  K.said.forEach(s=>L.push(s));
+  return (o.length?o.join(''):'')+(L.length?'<div class="note">'+L.join('<br>')+'</div>':'')+(!o.length&&!L.length?'<div class="mute">Nothing checked yet.</div>':'')}
+function listingDossier(l){if(l.imp)return importDossier(l);const c=l.car,e=CAT[c.cid],t=l.seller.type,[lo,hi]=estimate(c),mt=metToday(l),au=l.src==='auction';
+  const kn=e.kn!=='-'&&e.kn!=='takata'&&e.kn!=='ign'&&e.kn!=='frame'&&KN[e.kn]?KN[e.kn].label:e.kn==='takata'?'Open Takata airbag recalls are common':e.kn==='ign'?'Ignition-switch recall is common':e.kn==='frame'?'Frame rust is common':'No widely known weak point';
+  const q=quote(l),who=l.src==='dealer'?l.seller.name:l.seller.name+' (private)';
+  let h='<button class="btn close" data-a="close">← Back to list</button>'+flashHTML()+svgCar(e.cls,c.color[1])+'<h2>'+nameOf(c)+'</h2><div class="mute">'+who+' · '+l.city.n+(l.city.on?' (Ontario)':'')+'</div>'+
+  '<dl class="kv" style="margin-top:8px"><dt>Asking</dt><dd class="mono"><b>'+fmt(l.deal||l.ask)+'</b>'+(l.deal?' (agreed)':'')+'</dd><dt>Odometer</dt><dd>'+c.shown.toLocaleString('en-CA')+' km (per ad)</dd><dt>Engine</dt><dd>'+c.eng+'</dd><dt>Trans / drive</dt><dd>'+c.tr+' · '+e.drv+'</dd><dt>Colour</dt><dd>'+c.color[0]+'</dd><dt>VIN</dt><dd class="mono">'+c.vin+'</dd><dt>Owners</dt><dd>'+c.owners+'</dd><dt>Title (per ad)</dt><dd>'+c.adTitle+'</dd><dt>Registration</dt><dd>'+(au||l.src==='tow'?'none':c.reg==='oop'?'out-of-province plates':c.reg)+'</dd></dl>'+
+  '<div class="note">“'+l.text+'”</div>'+
+  '<h3>Your read</h3><div>Estimated value: <b class="mono">'+fmt(lo)+' – '+fmt(hi)+'</b> <span class="mute">(accuracy improves with Appraisal and inspections)</span></div><div class="mute" style="margin-top:4px">Model research: '+kn+'.</div>';
+  if(!au){h+='<h3>Contact</h3><div class="row">'+btn('say','Ask about problems',{v:'prob',dis:!!l.asked.prob})+btn('say','Why selling?',{v:'why',dis:!!l.asked.why})+(l.seller.type==='scammer'||(l.seller.type==='flipper'&&l.id%3===0)?btn('deposit','Send $200 deposit to hold'):'')+'</div>'+
+    '<div class="row" style="margin-top:6px">'+btn('meet',mt?'With seller today':'Meet seller ('+l.city.v+' visit'+(l.city.v>1?'s':'')+')',{c:mt?'':'pri',dis:mt})+'</div>';
+    h+='<h3>Inspect</h3><div class="row">'+btn('walk','Walk-around (free)',{dis:!mt})+btn('drive','Test drive (needs insurance)',{dis:!mt||l.src==='tow'})+btn('obd','OBD-II scan'+(S.tools.obd?'':' (no scanner)'),{dis:!mt})+btn('hist','History report ~$35')+btn('ppi','Pre-purchase inspection $120–250',{dis:!mt||t==='dealer'||l.src==='tow'})+btn('mech','Ask mechanic friend ('+S.favours+' favour'+(S.favours===1?'':'s')+')',{dis:!mt})+btn('comp','Compression test'+(S.tools.comp?'':' (no kit)'),{dis:!mt})+'</div>';}
+  else h+='<h3>Auction</h3><div class="note">Sight unseen. The clearing price is hidden. Winning adds a 10% premium, sales tax at registration, and towing.</div><div class="row">'+btn('hist','History report ~$35')+'</div>';
+  h+='<h3>Findings</h3>'+fx(c);
+  if(au){h+='<h3>Bid</h3><div class="row"><input id="offer" class="field" type="number" inputmode="numeric" placeholder="Maximum bid" value="'+(UI.offer||'')+'" style="width:140px">'+btn('bid','Place bid',{c:'pri'})+'</div>'}
+  else{h+='<h3>Negotiate</h3><div class="row"><input id="offer" class="field" type="number" inputmode="numeric" placeholder="Your offer" value="'+(UI.offer||'')+'" style="width:140px">'+btn('neg',mt?'Offer in person (cash)':'Text offer',{c:'pri'})+'</div><div class="mute" style="margin-top:4px">Haggling too hard or too often can end the deal.</div>';
+    h+='<h3>Buy</h3><table><tr><td>Price</td><td class="mono">'+fmt(q.price)+'</td></tr>'+(q.gst?'<tr><td>Sales tax (dealer)</td><td class="mono">'+fmt(q.gst)+'</td></tr>':'<tr><td>'+RG.taxN+' (paid at registration)</td><td class="mono">'+fmt(q.qst)+'</td></tr>')+'<tr><td>Registration / plates'+(q.insp?' + inspection':'')+'</td><td class="mono">'+fmt(q.reg+q.insp)+'</td></tr>'+(q.insC?'<tr><td>Insurance, first month</td><td class="mono">'+fmt(q.insC)+'</td></tr>':'')+'<tr><td><b>Drive home total</b></td><td class="mono"><b>'+fmt(q.drive)+'</b></td></tr><tr><td>Tow home instead (taxes later)</td><td class="mono">'+fmt(q.towT)+'</td></tr></table>';
+    if(q.why)h+='<div class="note warn">'+q.why+'</div>';
+    h+='<div class="row" style="margin-top:8px">'+btn('buy','Buy and drive home',{v:'drive',c:'pri',dis:!mt||!!q.why})+btn('buy','Buy and tow',{v:'tow',dis:!mt})+'</div>'}
+  return h}
+function flashHTML(){return UI.flash.length?'<div class="flash">'+UI.flash.map(x=>'<p>'+x+'</p>').join('')+'</div>':''}
+
+/* garage */
+function carCard(c){const e=CAT[c.cid],sel=UI.sel&&UI.sel.t==='C'&&UI.sel.id===c.uid,[lo,hi]=estimate(c);
+  return '<button class="lc '+(sel?'sel':'')+'" data-a="selC" data-id="'+c.uid+'">'+svgCar(e.cls,c.color[1])+'<div><b>'+nameOf(c)+'</b><span class="s">'+c.km.toLocaleString('en-CA')+' km · invested '+fmt(c.basis)+'</span><div class="tags">'+(c.regd?tag('Registered','g'):tag('Unregistered','w'))+(c.sale?tag('Listed '+fmt(c.sale.ask),'a'):'')+(c.job?tag('In shop','w'):'')+(c.lienFlag&&!c.lienPaid?tag('Lien','b'):'')+(c.recall?tag('Recall','w'):'')+'</div></div><div class="pr">'+fmt((lo+hi)/2)+'<small>est. value</small></div></button>'}
+function garageHTML(){let h='';if(!S.cars.length)h+='<div class="empty">Your driveway is empty. Buy a car in the Market tab. Remember to leave room for taxes, plates and insurance.</div>';
+  h+=S.cars.map(carCard).join('');for(let i=S.cars.length;i<S.slots;i++)h+='<div class="empty">Free parking spot</div>';return h}
+function issRow(c,i){const g=GRADE[UI.parts],parts=Math.round(i.parts*g[0]),shop=Math.round(parts*1.15+i.hrs*115*(S.partners.mech?.75:1));
+  return '<div class="iss"><div class="t"><b>'+i.label+'</b><div class="mute">'+i.sys+' · about '+(i.hrs*Math.max(.55,1.55-.1*lv('mech'))).toFixed(1)+' h DIY</div></div><div class="row">'+btn('rep','DIY '+fmt(parts),{id:i.id,v:'diy',c:'sm'})+btn('rep','Shop '+fmt(shop),{id:i.id,v:'shop',c:'sm'})+'</div></div>'}
+function carDossier(c){const e=CAT[c.cid],K=c.know,[lo,hi]=estimate(c);
+  let h='<button class="btn close" data-a="close">← Back to list</button>'+flashHTML()+svgCar(e.cls,c.color[1])+'<h2>'+nameOf(c)+'</h2><div class="mute">'+c.km.toLocaleString('en-CA')+' km · '+c.eng+' · '+c.tr+' · '+e.drv+' · '+c.color[0]+'</div>'+
+  '<dl class="kv" style="margin-top:8px"><dt>Invested</dt><dd class="mono">'+fmt(c.basis)+'</dd><dt>Est. value</dt><dd class="mono">'+fmt(lo)+' – '+fmt(hi)+(K.full?'':' <span class="mute">(unverified)</span>')+'</dd><dt>Title</dt><dd>'+(K.hist?K.hist.title:c.adTitle)+'</dd><dt>Registration</dt><dd>'+(c.regd?'valid, plated':'not registered')+'</dd><dt>Insurance</dt><dd>'+(S.ins?'active, '+fmt(insM())+'/mo':'none')+'</dd></dl>';
+  if(c.lienFlag&&!c.lienPaid)h+='<div class="note bad">Lien of '+fmt(c.lien)+' blocks registration and sale. '+btn('lien','Pay it off',{c:'sm'})+'</div>';
+  if(c.job)h+='<div class="note warn">In the shop until '+fmtDate(c.job.done)+'.</div>';
+  if(!c.regd)h+='<div class="note warn">Not registered. You must register it ('+RG.taxN+', plates'+(c.reg!=='valid'||c.title!=='clean'?', inspection':'')+') before driving. '+btn('reg','Register now',{c:'sm'})+'</div>';
+  if(c.recall)h+='<div class="note warn">Open safety recall. Value drops until fixed. '+btn('recall','Book free recall repair',{c:'sm'})+'</div>';
+  h+='<h3>Work</h3><div class="row">'+btn('diag','Diagnose yourself (1.5 h)',{dis:!!c.job})+'</div><div class="row" style="margin-top:6px"><span class="mute">Parts:</span>'+['new','after','used'].map(g=>'<button class="chip '+(UI.parts===g?'on':'')+'" data-a="parts" data-v="'+g+'">'+{new:'New',after:'Aftermarket',used:'Used'}[g]+'</button>').join('')+'</div>';
+  const open=c.issues.filter(i=>!i.fixed&&K.issues[i.id]);
+  h+='<div style="margin-top:6px">'+(open.length?open.map(i=>issRow(c,i)).join(''):'<div class="mute">No known mechanical problems.</div>')+'</div>';
+  if(K.rust!=null||K.dents!=null){h+='<h3>Body and tires</h3><div class="mute">Rust: '+RUSTN[c.rust]+' · Dents: '+c.dents+' · Tread: '+c.tread+'% · Winter tires: '+(c.winter?'yes':'no')+'</div><div class="row" style="margin-top:6px">'+
+    (c.dents?btn('body','Dent DIY',{v:'dent:diy',c:'sm'})+btn('body','Dent shop',{v:'dent:shop',c:'sm'}):'')+(c.rust>=1&&c.rust<=3?btn('body','Rust DIY',{v:'rust:diy',c:'sm'})+btn('body','Rust shop',{v:'rust:shop',c:'sm'}):'')+
+    (c.rust>=4?'<span class="bad">Structural rust: only worth scrap.</span>':'')+'</div>'}
+  h+='<h3>Upgrades</h3><div class="row">'+btn('tires','New tires $500–900',{c:'sm'})+btn('winter','Winter set $520',{c:'sm',dis:c.winter})+btn('detail','Detail DIY (5 h)',{v:'diy',c:'sm',dis:c.detail})+btn('detail','Detail shop',{v:'shop',c:'sm',dis:c.detail})+'</div>'+(c.receipts?'<div class="mute" style="margin-top:4px">'+c.receipts+' service receipt(s) add value.</div>':'');
+  h+='<h3>Findings so far</h3>'+fx(c);
+  h+=recourseHTML(c)+exportHTML(c)+'<h3>Sell</h3>';
+  if(c.sale)h+='<div class="note">Listed at <b>'+fmt(c.sale.ask)+'</b> for '+(S.day-c.sale.listed)+' day(s)'+(c.sale.disc?', defects disclosed':', defects not disclosed')+'. Check the Offers tab.</div><div class="row">'+btn('unlist','Take off market')+'</div>';
+  else{const sug=Math.round((lo+hi)/2*1.08/50)*50;if(!UI.sell.ask)UI.sell.ask=sug;
+    h+='<div class="row"><input id="ask" class="field" type="number" inputmode="numeric" value="'+UI.sell.ask+'" style="width:120px"><span class="mute">comps suggest about '+fmt(sug)+'</span></div><div class="row" style="margin-top:6px"><span class="mute">Ad:</span>'+['Basic free','Boost $30','Featured $75'].map((x,i)=>'<button class="chip '+(UI.sell.ad===i?'on':'')+'" data-a="ad" data-v="'+i+'">'+x+'</button>').join('')+'</div>'+
+    '<div class="row" style="margin-top:6px"><button class="chip '+(UI.sell.disc?'on':'')+'" data-a="disc">'+(UI.sell.disc?'Disclosing known defects':'Not disclosing known defects')+'</button></div><div class="row" style="margin-top:8px">'+btn('list','List for sale',{c:'pri'})+'</div>';}
+  const rec=S.sales.filter(d=>d>S.day-365).length;
+  h+='<div class="row" style="margin-top:8px">'+btn('wholesale','Wholesale to dealer',{c:'sm'})+btn('scrap','Scrap yard',{c:'sm danger'})+btn('partout','Part out (12 h)',{c:'sm danger'})+'</div>';
+  if(!S.lic&&rec>=4)h+='<div class="note warn">'+rec+' private sales in 12 months. Past 5 you risk a curbstoning fine.</div>';
+  return h}
+
+/* offers */
+function offersHTML(){const listed=S.cars.filter(c=>c.sale);let h='';
+  h+='<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase">Buyer messages</h3>';
+  if(!S.offers.length)h+='<div class="empty">No offers yet. Swap offers also show up here. List a car from the Garage. Fair prices and good photos bring buyers faster.</div>';
+  const inp=S.offers.length?'<div class="row" style="margin-bottom:8px"><span class="mute">Counter price</span><input id="offer" class="field" type="number" inputmode="numeric" value="'+(UI.offer||'')+'" style="width:130px"></div>':'';
+  h+=inp+S.offers.map(o=>{if(o.type==='swap')return swapCard(o);const c=CB(o.uid);return '<div class="card" style="margin-bottom:8px"><div class="row" style="justify-content:space-between"><b>'+nameOf(c)+'</b><span class="mono"><b>'+fmt(o.amt)+'</b></span></div><div class="mute">'+o.msg+' Expires '+fmtDate(o.exp)+'.</div><div class="row" style="margin-top:8px">'+btn('oyes','Accept',{id:o.id,c:'pri sm'})+btn('octr','Counter',{id:o.id,c:'sm'})+btn('ono','Decline',{id:o.id,c:'sm'})+'</div></div>'}).join('');
+  h+='<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:18px">Your ads</h3>'+(listed.length?listed.map(c=>'<div class="card" style="margin-bottom:8px">'+nameOf(c)+' · asking <b class="mono">'+fmt(c.sale.ask)+'</b> · '+(S.day-c.sale.listed)+' days listed</div>').join(''):'<div class="mute">No cars listed.</div>');
+  return h+(flashHTML()?'<div style="margin-top:12px">'+flashHTML()+'</div>':'')}
+
+/* shop */
+const NEXTSLOT=[0,3500,8000,8000];
+function shopHTML(){const P=S.partners,L=lv('net'),cr=loanLimit(),open=S.debt;
+  const partner=(k,name,need,desc)=>'<div class="card"><h4>'+name+'</h4><div class="mute">'+desc+' Takes 5% of your profit on each sale.</div><div class="row" style="margin-top:8px">'+(P[k]?tag('Partner','g'):btn('partner','Shake on it',{v:k,dis:L<need,c:'sm'})+(L<need?'<span class="mute">Networking '+need+' needed</span>':''))+'</div></div>';
+  return flashHTML()+'<div class="grid2">'+
+  '<div class="card"><h4>Insurance</h4><div class="mute">Needed to test drive and to drive a registered car. '+fmt(insM())+' per month.</div><div class="row" style="margin-top:8px">'+(S.ins?tag('Active','g')+btn('insure','Cancel policy',{v:'off',c:'sm'}):btn('insure','Start policy ('+fmt(insM())+')',{v:'on',c:'sm'}))+'</div></div>'+
+  '<div class="card"><h4>Tools</h4><div class="mute">OBD-II scanner reads stored codes. Compression kit needs Mechanical 2.</div><div class="row" style="margin-top:8px">'+(S.tools.obd?tag('Scanner owned','g'):btn('tool','OBD-II scanner $70',{v:'obd',c:'sm'}))+(S.tools.comp?tag('Kit owned','g'):btn('tool','Compression kit $120',{v:'comp',c:'sm'}))+'</div></div>'+
+  '<div class="card"><h4>Parking</h4><div class="mute">'+S.slots+' spot(s). Extra spots cost $120/month each.</div><div class="row" style="margin-top:8px">'+(S.slots<4?btn('slot','Rent spot '+(S.slots+1)+' ($150)',{c:'sm',dis:netWorth()<NEXTSLOT[S.slots]})+(netWorth()<NEXTSLOT[S.slots]?'<span class="mute">Net worth '+fmt(NEXTSLOT[S.slots])+' needed</span>':''):tag('Maximum','g'))+'</div></div>'+
+  '<div class="card"><h4>Loan</h4><div class="mute">Credit score <b class="mono">'+S.credit+'</b>. Limit '+fmt(cr)+' (starts at $100, then $500 and $1,000 as your credit builds). Interest runs 2.2% a month, which eats margin.</div><div class="row" style="margin-top:8px">'+[100,500,1000,2500,5000].filter(x=>x<=Math.max(1000,cr)).map(x=>btn('loan','Borrow '+fmt(x),{v:x,c:'sm',dis:cr<x+open})).join('')+(open?btn('repay','Repay '+fmt(Math.min(S.cash,S.debt)),{c:'sm',dis:S.cash<=0}):'')+'</div></div>'+
+  '<div class="card"><h4>Dealer licence</h4><div class="mute">$3,000 for licence, bond and premises (needs 3 parking spots). Removes the curbstoning risk and lifts buyer trust. Dealers owe statutory warranties.</div><div class="row" style="margin-top:8px">'+(S.lic?tag('Licensed dealer','g'):btn('lic','Get licensed',{c:'sm',dis:S.slots<3||S.cash<3000}))+'</div></div>'+
+  partner('mech','Marc, mechanic',3,'Shop labour −25% and half-price inspections.')+partner('det','Léa, detailer',2,'Detailing for $90.')+partner('flip','Dave, flipper',4,'Passes you leads and a better stream of deals.')+'</div>'}
+
+/* ledger */
+function ledgerHTML(){const nw=netWorth(),T=[10000,50000,250000];
+  const ms=T.map(t=>'<div class="card"><div class="mono"><b>'+fmt(t)+'</b></div><div class="bar"><i style="width:'+clamp(nw/t*100,0,100)+'%"></i></div></div>').join('');
+  const sk=Object.keys(SKN).map(k=>{const L=lv(k),a=LV[L-1],b=LV[L]||LV[L-1];return '<div class="card"><div class="row" style="justify-content:space-between"><b>'+SKN[k]+'</b><span class="mono">Lv '+L+'</span></div><div class="bar"><i style="width:'+(L>=10?100:clamp((S.skills[k]-a)/(b-a)*100,0,100))+'%"></i></div></div>'}).join('');
+  const rep=S.rep>=65?'Trusted':S.rep>=35?'Neutral':'Shady';
+  return playerCard()+'<div class="grid2">'+ms+'</div><h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:18px">Skills (they improve with practice)</h3><div class="grid2">'+sk+'</div>'+
+  '<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:18px">Record</h3><dl class="kv"><dt>Cars sold</dt><dd>'+S.stats.flips+'</dd><dt>Total profit</dt><dd class="mono">'+fmt(S.stats.profit)+'</dd><dt>Best flip</dt><dd class="mono">'+fmt(S.stats.best)+'</dd><dt>Reputation</dt><dd>'+rep+' ('+S.rep+')</dd><dt>Credit score</dt><dd>'+S.credit+'</dd><dt>Day</dt><dd>'+S.day+(S.mode==='twelve'?' of 365':'')+'</dd></dl>'+
+  '<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:18px">Ledger</h3><div class="log">'+(S.log.length?S.log.map(x=>'<div><span class="mute">'+fmtDate(x.d).replace(/, \d{4}/,'').replace(/^\w+, /,'')+'</span><span>'+x.m+'</span><span class="'+(x.$<0?'bad':'good')+'">'+(x.$?fmt(x.$):'')+'</span></div>').join(''):'<div class="mute">No entries yet.</div>')+'</div>'}
+
+function render(){const ds=document.querySelector('.dossier'),st=ds?ds.scrollTop:0,wy=window.scrollY;
+  if(UI.start){$r().innerHTML=startHTML();return}const two=['market','garage','trade'].includes(UI.tab);let body;
+  if(two){const dos=UI.sel?(UI.sel.t==='L'?(LB(UI.sel.id)?listingDossier(LB(UI.sel.id)):''):(CB(UI.sel.id)?carDossier(CB(UI.sel.id)):'')):'';
+    body='<main class="main"><section class="list">'+({market:marketHTML,garage:garageHTML,trade:tradeHTML}[UI.tab])()+'</section><aside class="dossier '+(dos?'open':'')+'" id="dossier">'+(dos||'<div class="empty">Select a '+(UI.tab==='market'?'listing to inspect it':'car to work on it')+'.</div>')+'</aside></main>'}
+  else body='<main class="single">'+({offers:offersHTML,invest:()=>investHTML()+angelHTML(),staff:staffHTML,legal:legalHTML,shop:shopHTML,ledger:ledgerHTML}[UI.tab])()+'</main>';
+  $r().innerHTML=headerHTML()+(UI.menu?menuHTML():'')+overHTML()+tabsHTML()+stripHTML()+body;
+  const d2=document.querySelector('.dossier');if(d2)d2.scrollTop=st;window.scrollTo(0,wy);
+  try{localStorage.setItem(SAVEKEY,JSON.stringify(S))}catch(e){}cloudSoon()}
+/* ---------- invest / staff / swap UI ---------- */
+function spark(h){const w=120,ht=28,mn=Math.min(...h),mx=Math.max(...h),r=(mx-mn)||1;const pts=h.map((v,i)=>(i/(h.length-1)*w).toFixed(1)+','+(ht-2-(v-mn)/r*(ht-4)).toFixed(1)).join(' ');
+  const up=h[h.length-1]>=h[0];return '<svg viewBox="0 0 '+w+' '+ht+'" width="'+w+'" height="'+ht+'" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="'+(up?'var(--good)':'var(--bad)')+'" stroke-width="1.6"/></svg>'}
+function investHTML(){const pv=portfolio();let cost=0;Object.keys(S.hold).forEach(k=>cost+=S.hold[k].cost);
+  let h=flashHTML()+'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><div><div class="mute">Portfolio value</div><b class="mono" style="font-size:20px">'+fmt(pv)+'</b></div><div><div class="mute">Gain / loss</div><b class="mono '+(pv-cost>=0?'good':'bad')+'">'+fmt(pv-cost)+'</b></div><div><div class="mute">Cash</div><b class="mono">'+fmt(S.cash)+'</b></div></div><div class="mute" style="margin-top:6px">Money here is not available for car deals until you sell. Trades cost $5. Prices move every day and can fall. ETFs are steadier than single stocks.</div>'+
+  '<div class="row" style="margin-top:8px"><span class="mute">Amount</span><input id="iamt" class="field" type="number" inputmode="numeric" value="'+(UI.iamt||'')+'" placeholder="$" style="width:110px"></div></div><div class="grid2">';
+  h+=TICK.map(t=>{const hs=S.mk[t.s],p=hs[hs.length-1],d=p/hs[hs.length-2]-1,pos=S.hold[t.s];
+    return '<div class="card"><div class="row" style="justify-content:space-between"><b>'+t.s+'</b>'+tag(t.k==='etf'?'ETF':'Stock',t.k==='etf'?'a':'')+'</div><div class="mute">'+t.n+(t.y?' · pays about '+(t.y*100).toFixed(1)+'%/yr':'')+'</div>'+
+    '<div class="row" style="justify-content:space-between;margin:6px 0"><span class="mono"><b>$'+p.toFixed(2)+'</b> <span class="'+(d>=0?'good':'bad')+'">'+(d>=0?'+':'')+(d*100).toFixed(2)+'%</span></span>'+spark(hs.slice(-40))+'</div>'+
+    (pos?'<div class="mute">Holding '+fmt(pos.u*p)+' (cost '+fmt(pos.cost)+')</div>':'')+'<div class="row" style="margin-top:6px">'+btn('ibuy','Buy',{v:t.s,c:'sm pri'})+btn('isell','Sell amount',{v:t.s,c:'sm',dis:!pos})+btn('isellall','Sell all',{v:t.s,c:'sm',dis:!pos})+'</div></div>'}).join('')+'</div>';
+  return h}
+function swapCard(o){const c=CB(o.uid),n=o.l.car,e=CAT[n.cid],K=n.know,[lo,hi]=estimate(n);
+  return '<div class="card" style="margin-bottom:8px"><div class="row" style="justify-content:space-between"><b>Swap offer</b>'+tag('Exchange','a')+'</div><div class="mute">'+o.msg+' Expires '+fmtDate(o.exp)+'.</div>'+
+  '<div style="margin-top:8px">'+svgCar(e.cls,n.color[1])+'</div><div><b>'+nameOf(n)+'</b> <span class="mute">('+n.shown.toLocaleString('en-CA')+' km, '+n.eng+', '+n.tr+', '+e.drv+')</span></div><div class="mute">'+o.l.text+'</div>'+
+  '<div class="mute" style="margin-top:4px">Your read of their car: <b class="mono">'+fmt(lo)+' – '+fmt(hi)+'</b></div>'+
+  '<div style="margin:8px 0"><b>Your '+nameOf(c)+'</b> for their car, '+(o.cash>0?'they pay you <b class="mono good">'+fmt(o.cash)+'</b>':o.cash<0?'you pay them <b class="mono bad">'+fmt(-o.cash)+'</b>':'straight swap')+'.</div>'+
+  '<div class="row">'+btn('swt','Walk-around',{id:o.id,v:'walk',c:'sm'})+btn('swt','Test drive',{id:o.id,v:'drive',c:'sm'})+btn('swt','OBD scan',{id:o.id,v:'obd',c:'sm'})+btn('swt','History ~$35',{id:o.id,v:'hist',c:'sm'})+'</div>'+
+  '<div class="row" style="margin-top:6px">'+btn('syes','Accept swap',{id:o.id,c:'pri sm'})+btn('sctr','Counter with cash in the box above',{id:o.id,c:'sm'})+btn('sno','Decline',{id:o.id,c:'sm'})+'</div>'+(Object.keys(K.issues).length||K.rust!=null||K.said.length?fx(n):'')+'</div>'}
+/* ---------- UI: staff, angel, legal ---------- */
+const hasRole=r=>S.staff&&S.staff.some(e=>e.role===r);
+const H3=t=>'<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:18px 0 8px">'+t+'</h3>';
+const FREEJ={mech:'$70/hr per repair',det:'$95 per car',body:'$140 per job'};
+function empCard(e){const r=ROLES[e.role],m=e.morale,yrs=(e.exp/12).toFixed(1);
+  return '<div class="card"><div class="row" style="justify-content:space-between"><h4>'+e.name+'</h4>'+tag(r.n,'a')+'</div>'+
+  '<div class="mute">'+CT[e.contract].n+(e.contract==='term'?' until '+fmtDate(e.end):'')+' · '+yrs+' yr experience</div>'+
+  '<dl class="kv" style="margin:6px 0"><dt>Pay</dt><dd class="mono">'+(e.contract==='free'?FREEJ[e.role]:fmt(wage(e))+'/mo'+(e.contract==='comm'?' + 8% of profit':''))+'</dd><dt>Performance</dt><dd class="mono">'+est(e).toFixed(1)+' / 10 <span class="mute">('+(e.jobs?e.jobs+' jobs':'no jobs yet')+')</span></dd><dt>Earned</dt><dd class="mono">'+fmt(e.earn)+'</dd></dl>'+
+  '<div class="mute">Morale</div><div class="bar"><i style="width:'+m+'%;background:'+(m<35?'var(--bad)':m<60?'var(--warn)':'var(--good)')+'"></i></div>'+
+  (e.raise?'<div class="note warn">Asks for a 10% raise. '+btn('raise','Grant',{id:e.id,v:'1',c:'sm'})+btn('raise','Refuse',{id:e.id,v:'0',c:'sm'})+'</div>':'')+
+  (e.renew?'<div class="note warn">Contract ends. '+btn('renew','Renew 3 months',{id:e.id,v:'1',c:'sm'})+btn('renew','Let go',{id:e.id,v:'0',c:'sm'})+'</div>':'')+
+  '<div class="row" style="margin-top:8px">'+btn('fire','Let go',{id:e.id,c:'sm danger'})+'</div></div>'}
+function candCard(c){const r=ROLES[c.role],ok=c.role==='sales'||c.role==='mech',fr=['mech','det','body'].includes(c.role);
+  const sk=c.iv?'About '+(c.skill+(((c.id*31)%100)/100-.5)*1).toFixed(1)+' / 10 (interviewed)':'Claims '+c.claim.toFixed(0)+' / 10';
+  return '<div class="card"><div class="row" style="justify-content:space-between"><h4>'+c.name+'</h4>'+tag(r.n,'a')+'</div><div class="mute">'+r.d+'</div>'+
+  '<dl class="kv" style="margin:6px 0"><dt>Experience</dt><dd>'+c.exp+' yr</dd><dt>Skill</dt><dd>'+sk+'</dd><dt>References</dt><dd class="mono">'+c.ref+' / 5</dd><dt>Impression</dt><dd>'+c.trait+'</dd><dt>Asking</dt><dd class="mono">'+fmt(c.ask)+'/mo</dd></dl>'+
+  '<div class="row">'+btn('intv','Interview $40',{id:c.id,c:'sm',dis:!!c.iv})+'</div><div class="mute" style="margin:8px 0 4px">Hire on:</div><div class="row">'+
+  btn('hire','Permanent '+fmt(c.ask),{id:c.id,v:'perm',c:'sm pri'})+btn('hire','3-month '+fmt(c.ask*.95),{id:c.id,v:'term',c:'sm'})+(ok?btn('hire','Commission '+fmt(c.ask*.4)+' + 8%',{id:c.id,v:'comm',c:'sm'}):'')+(fr?btn('hire','Freelance '+FREEJ[c.role],{id:c.id,v:'free',c:'sm'}):'')+'</div></div>'}
+function staffHTML(){const pr=payroll();
+  return flashHTML()+'<div class="note">Payroll <b class="mono">'+fmt(pr)+'</b> a month, paid every 30 days. Team size '+S.staff.length+' of '+maxStaff()+' (more with extra parking). Skill grows with experience. Claimed skill and references can mislead; interviews and trial work show the truth.</div>'+
+  (hasRole('mech')?'<div class="row" style="margin-bottom:8px"><button class="chip '+(S.auto?'on':'')+'" data-a="auto">'+(S.auto?'Mechanic auto-repairs: on':'Mechanic auto-repairs: off')+'</button></div>':'')+
+  H3('Your team')+(S.staff.length?'<div class="grid2">'+S.staff.map(empCard).join('')+'</div>':'<div class="empty">No employees yet. Hire from the applicants below.</div>')+
+  H3('Applicants')+'<div class="grid2">'+S.pool.map(candCard).join('')+'</div>'}
+function angelHTML(){
+  const st=(S.stakes||[]).map(s=>'<div class="card"><div class="row" style="justify-content:space-between"><b>'+s.name+'</b><span class="mono">'+fmt(s.amt)+' for '+s.eq+'%</span></div><div class="mute">'+s.idea+' · invested '+(S.day-s.at)+' days ago · outcome unknown</div><div class="mute">Latest update: '+(s.mark>1.15?'growing':s.mark<.85?'struggling':'steady')+'</div></div>').join('');
+  const pc=(S.pitches||[]).map(p=>'<div class="card"><div class="row" style="justify-content:space-between"><h4>'+p.name+'</h4>'+tag(p.sec)+'</div><div>'+p.idea+'</div><div class="note">“'+p.pitch+'”</div>'+
+    '<dl class="kv"><dt>Ask</dt><dd class="mono">'+fmt(p.ask)+' for '+p.eq+'%</dd><dt>Valuation</dt><dd class="mono">'+fmt(p.ask/p.eq*100)+'</dd><dt>Monthly revenue</dt><dd class="mono">'+(p.dd?fmt(p.rev)+' <span class="mute">verified (pitched '+fmt(p.claimed)+')</span>':fmt(p.claimed)+' <span class="mute">per pitch</span>')+'</dd><dt>Team</dt><dd>'+p.team+' people</dd>'+(p.dd?'<dt>Diligence</dt><dd class="'+(p.flags.length?'bad':'good')+'">'+(p.flags.length?p.flags.join('; '):'no red flags')+'</dd>':'')+'</dl>'+
+    '<div class="row" style="margin-top:8px">'+btn('dd','Diligence $100',{id:p.id,c:'sm',dis:!!p.dd})+btn('angel','Invest '+fmt(p.ask),{id:p.id,v:'0',c:'sm pri'})+btn('angel','Push for more equity',{id:p.id,v:'1',c:'sm'})+'</div><div class="mute" style="margin-top:4px">Pitch expires '+fmtDate(p.exp)+'.</div></div>').join('');
+  return H3('Angel investing')+'<div class="note">Back early ideas for a slice of the company. Most fail, a few return many times your money, and cash is locked until an exit. Judge the pitch against the verified numbers.</div>'+
+    (st?'<div class="grid2" style="margin-bottom:10px">'+st+'</div>':'')+'<div class="grid2">'+(pc||'<div class="empty">No pitches this week.</div>')+'</div>'}
+function suitCard(s){const mine=s.role==='def',L=LAW[s.counsel];let acts='';
+  if(s.stage==='served'||s.stage==='draft')acts=['para','lawyer'].map(k=>btn('counsel','Hire '+LAW[k].n.toLowerCase()+' '+fmt(LAW[k].cost),{id:s.id,v:k,c:'sm',dis:s.counsel!=='self'})).join('')+btn('settle',(mine?'Settle':'Take settlement'),{id:s.id,c:'sm'})+btn('go',mine?'Defend in court':'File claim',{id:s.id,c:'sm pri'})+(s.stage==='draft'?btn('drop','Drop',{id:s.id,c:'sm'}):'');
+  const info=s.stage==='trial'?'Hearing '+fmtDate(s.trial):s.stage==='served'?'Respond by '+fmtDate(s.due):s.stage==='draft'?'Not yet filed':'Closed';
+  return '<div class="card"><div class="row" style="justify-content:space-between"><h4>'+(mine?'Against you':'Your claim')+'</h4>'+tag(info,s.stage==='closed'?'':'w')+'</div><div>'+s.title+'</div><div class="mono" style="margin:4px 0"><b>'+fmt(s.amt)+'</b> <span class="mute">· counsel: '+L.n.toLowerCase()+'</span></div>'+
+  '<div class="mute">'+(mine?'The more you hid, the weaker your case. Records and a good lawyer help.':'Evidence from history reports and inspections strengthens a claim.')+'</div><div class="row" style="margin-top:8px">'+acts+'</div></div>'}
+function legalHTML(){const act=S.suits.filter(s=>s.stage!=='closed'),done=S.suits.filter(s=>s.stage==='closed');
+  return flashHTML()+'<div class="note">Reputation: <b>'+S.rep+'</b>. Hiding known defects or rolling back odometers brings suits. To claim against a seller, open the car in your Garage and use the Recourse section. Small claims cover up to $15,000.</div>'+
+  H3('Active')+(act.length?'<div class="grid2">'+act.map(suitCard).join('')+'</div>':'<div class="empty">No active cases.</div>')+(done.length?H3('Recently closed')+'<div class="log">'+done.map(s=>'<div><span class="mute">closed</span><span>'+s.title+'</span><span>'+fmt(s.amt)+'</span></div>').join('')+'</div>':'')}
+function recourseHTML(c){if(!c.origin||c.origin.type==='scammer')return '';const o=c.origin;
+  return '<h3>Recourse</h3><div class="mute" style="margin-bottom:6px">Bought from '+o.name+(o.src==='dealer'?' (dealer)':' (private)')+'. Claims need evidence you gathered.</div><div class="row">'+btn('suitf','Odometer fraud',{v:'odo',c:'sm'})+btn('suitf','Hidden defect',{v:'defect',c:'sm'})+btn('suitf','Title misrepresented',{v:'title',c:'sm'})+(o.src==='dealer'?btn('suitf','Dealer warranty',{v:'dealer',c:'sm'}):'')+'</div>'}
+/* ---------- UI: trade, start, menu ---------- */
+function importDossier(l){const c=l.car,e=CAT[c.cid],P=IMP[l.imp],q=impQuote(l),[lo,hi]=estimate(c);
+  return '<button class="btn close" data-a="close">← Back to list</button>'+flashHTML()+svgCar(e.cls,c.color[1])+'<h2>'+nameOf(c)+'</h2><div class="mute">'+P.n+' · '+l.seller.name+' (private seller)</div>'+
+  '<dl class="kv" style="margin-top:8px"><dt>Price</dt><dd class="mono"><b>'+fmt(l.ask)+'</b></dd><dt>Odometer</dt><dd>'+c.shown.toLocaleString('en-CA')+' km (per ad)</dd><dt>Engine</dt><dd>'+c.eng+'</dd><dt>Trans / drive</dt><dd>'+c.tr+' · '+e.drv+'</dd><dt>VIN</dt><dd class="mono">'+c.vin+'</dd></dl>'+
+  '<div class="note">'+P.note+'</div><div class="note">“'+l.text+'”</div><h3>Your read</h3><div>Estimated Canadian value: <b class="mono">'+fmt(lo)+' – '+fmt(hi)+'</b></div>'+
+  '<h3>Check before you pay</h3><div class="row">'+btn('hist','History report ~$35')+btn('impi','Remote inspection $180')+'</div><h3>Findings</h3>'+fx(c)+
+  '<h3>Landed cost</h3><table><tr><td>Price</td><td class="mono">'+fmt(q.price)+'</td></tr><tr><td>Shipping</td><td class="mono">'+fmt(q.ship)+'</td></tr><tr><td>Broker</td><td class="mono">'+fmt(q.broker)+'</td></tr><tr><td>Duty</td><td class="mono">'+fmt(q.duty)+'</td></tr><tr><td>GST</td><td class="mono">'+fmt(q.gst)+'</td></tr>'+(q.comp?'<tr><td>Compliance work</td><td class="mono">'+fmt(q.comp)+'</td></tr>':'')+'<tr><td>RIV inspection fee</td><td class="mono">'+fmt(q.riv)+'</td></tr><tr><td><b>Total now</b></td><td class="mono"><b>'+fmt(q.total)+'</b></td></tr></table>'+
+  '<div class="mute" style="margin:6px 0">Arrives in about '+q.days+' days. '+RG.taxN+' and plates are due at registration. Sellers you cannot verify can take the money and never ship.</div>'+btn('iorder','Place order',{c:'pri'})}
+function exportHTML(c){return '<h3>Export</h3><div class="mute" style="margin-bottom:6px">Sell abroad where demand is strong. Net estimate after shipping and fees. Foreign buyers can default.</div><div class="row">'+
+  Object.keys(EXP).map(k=>btn('export','To '+EXP[k].n.split(' (')[0]+' ~'+fmt(expEst(c,k)),{v:k,c:'sm'})).join('')+'</div>'}
+function tradeHTML(){let h='';
+  h+='<div class="note">Imports arrive unregistered and uninspected. Exports leave your garage and pay on arrival. Listings refresh weekly.</div>';
+  Object.keys(IMP).forEach(k=>{const P=IMP[k],ls=S.imports.filter(l=>l.imp===k);h+=H3(P.n)+'<div class="mute" style="margin-bottom:6px">'+P.note+'</div>'+(ls.length?ls.map(listCard).join(''):'<div class="empty">No listings this week.</div>')});
+  h+=H3('Shipments')+(S.transit.length?'<table><tr><th>Car</th><th>Route</th><th>Arrives</th></tr>'+S.transit.map(t=>'<tr><td>'+nameOf(t.car)+'</td><td>'+(t.dir==='in'?'from '+t.from:'to '+t.to)+'</td><td>'+(t.arr>S.day?'in '+(t.arr-S.day)+' d':'at port'+(t.stor?' ('+t.stor+' d storage)':''))+(t.held?' · customs hold':'')+'</td></tr>').join('')+'</table>':'<div class="mute">Nothing in transit.</div>');
+  return h}
+function startHTML(){const sel=UI.pickReg||'qc',r=REG[sel],md=UI.pickMode||'free';
+  const mo=[['free','Free play','No end. Build whatever you like.'],['twelve','$2k to $20k in 12 months','Reach $20,000 net worth within a year.'],['iron','Ironman','One bankruptcy ends the save.']];
+  const hasLocal=!!loadSaved();
+  return '<header class="hd"><div class="brand">Lot <i>&amp;</i> Ledger<small>Used-car flipping sim · '+CAT.length+' models · CAD</small></div><div class="acts">'+btn('theme',themeLabel())+(hasLocal||S?btn('resume','Continue game'):'')+'</div></header>'+
+  '<main class="single" style="padding-top:14px">'+charHTML()+'<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px">Choose where you start</h3>'+mapSVG(sel)+
+  '<div class="card" style="margin:8px 0"><h4>'+r.name+'</h4><div class="mute">'+r.blurb+'</div><dl class="kv" style="margin-top:6px"><dt>Sales tax</dt><dd>'+r.taxN+' '+(r.priv*100).toFixed(r.priv*1000%10?2:0)+'% private'+' · '+(r.dealer*100).toFixed(r.dealer*1000%10?2:0)+'% dealer</dd><dt>Registry</dt><dd>'+r.auth+'</dd><dt>Rust</dt><dd>'+(r.rust>=1?'heavy':r.rust>=.6?'moderate':'light')+'</dd><dt>Insurance</dt><dd>'+(r.ins>1.4?'expensive':r.ins>1.1?'above average':'average')+'</dd></dl></div>'+
+  '<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 6px">Game mode</h3><div class="grid2">'+mo.map(m=>'<button class="card" style="text-align:left;'+(md===m[0]?'border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)':'')+'" data-a="pickmode" data-v="'+m[0]+'"><b>'+m[1]+'</b><div class="mute">'+m[2]+'</div></button>').join('')+'</div>'+
+  '<div class="row" style="margin-top:14px">'+btn('begin','Start in '+r.name.split(',')[0],{c:'pri'})+'</div></main>'}
+function menuHTML(){const sl=[1,2,3].map(n=>{const m=CLOUD.meta[n];return '<div class="card"><div class="row" style="justify-content:space-between"><b>Slot '+n+(CLOUD.slot===n?' (active)':'')+'</b>'+(m?'<span class="mute">'+new Date(m.at).toLocaleString('en-CA',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</span>':'')+'</div>'+
+    (m?'<div class="mute">'+m.region+' · '+m.date+'<br>Net worth '+fmt(m.nw)+' · cash '+fmt(m.cash)+'</div>':'<div class="mute">Empty</div>')+'<div class="row" style="margin-top:6px">'+btn('csave','Save here',{v:n,c:'sm pri'})+btn('cload','Load',{v:n,c:'sm',dis:!m})+btn('cdel','Delete',{v:n,c:'sm danger',dis:!m})+'</div></div>'}).join('');
+  return '<div class="card" style="margin:10px 0"><h4>Game</h4><div class="row">'+btn('newgame','New game')+btn('theme',themeLabel())+'</div><p class="mute" style="margin:8px 0">Mode: <b>'+({free:'Free play',twelve:'12-month challenge',iron:'Ironman'}[S.mode])+'</b> · Region: <b>'+RG.name+'</b>. A browser save is written after every action.</p>'+
+  '<h4 style="margin-top:10px">Account and cloud saves</h4>'+(CLOUD.ready?'<div class="mute">Signed in'+(CLOUD.name?' as <b>'+CLOUD.name+'</b>':'')+'. Saves are private to your account and follow you across devices.</div><div class="row" style="margin:6px 0"><button class="chip '+(CLOUD.auto?'on':'')+'" data-a="cauto">'+(CLOUD.auto?'Autosave to slot '+CLOUD.slot+': on':'Autosave: off')+'</button></div><div class="grid2">'+sl+'</div>'
+   :'<div class="note">Cloud saves need a signed-in claude.ai viewer. Sign in to claude.ai and reopen this page to save your game to your account. Meanwhile your progress is kept in this browser.</div>')+'</div>'}
+/* ---------- illustrated cars, character creator ---------- */
+function svgCar(cls,col){const L={compact:[40,20,150,60,14],hatch:[40,18,158,60,14],sedan:[38,20,152,60,13],suv:[34,14,168,58,16],van:[30,12,172,58,16],truck:[38,18,120,58,16],sport:[44,28,150,60,12],lux:[38,20,156,60,13],conv:[44,30,132,60,12]}[cls]||[40,20,150,60,14];
+  const roof={compact:'46,40 66,18 130,18 156,40',hatch:'44,40 62,18 138,18 158,40',sedan:'42,40 66,20 126,20 152,40',suv:'38,40 48,15 160,15 170,40',van:'34,40 40,13 160,13 172,40',truck:'44,40 62,18 106,18 120,40',sport:'50,40 84,26 120,26 152,40',lux:'40,40 66,20 128,20 158,40',conv:'52,40 62,31 116,31 130,40'}[cls]||'46,40 66,18 130,18 156,40';
+  const pts=roof.split(' ').map(p=>p.split(',').map(Number)),mid=(pts[1][0]+pts[2][0])/2;
+  const rw=r=>'<circle cx="'+r+'" cy="61" r="12.5" fill="#15181b"/><circle cx="'+r+'" cy="61" r="8" fill="#9aa4aa"/><circle cx="'+r+'" cy="61" r="3" fill="#3b4348"/>'+[0,60,120,180,240,300].map(a=>'<line x1="'+r+'" y1="61" x2="'+(r+7.5*Math.cos(a*Math.PI/180)).toFixed(1)+'" y2="'+(61+7.5*Math.sin(a*Math.PI/180)).toFixed(1)+'" stroke="#3b4348" stroke-width="1.2"/>').join('');
+  const body=cls==='truck'?'<rect x="120" y="29" width="62" height="13" rx="2" fill="'+col+'"/><rect x="123" y="32" width="56" height="8" fill="#000" opacity=".25"/>':'';
+  const win=cls==='conv'?'<polygon points="'+roof+'" fill="#2a2f34" opacity=".9"/>':'<polygon points="'+roof+'" fill="var(--win)" stroke="'+col+'" stroke-width="6" stroke-linejoin="round"/><line x1="'+mid+'" y1="'+pts[1][1]+'" x2="'+(mid+3)+'" y2="40" stroke="'+col+'" stroke-width="3"/>';
+  const rack=(cls==='suv'||cls==='van')?'<line x1="60" y1="'+(pts[1][1]-3)+'" x2="146" y2="'+(pts[1][1]-3)+'" stroke="#2b3136" stroke-width="2"/>':'';
+  const wing=cls==='sport'?'<rect x="168" y="30" width="16" height="3" fill="#1c2024"/><rect x="172" y="33" width="2" height="6" fill="#1c2024"/>':'';
+  return '<svg viewBox="0 0 200 78" class="car" aria-hidden="true"><ellipse cx="100" cy="71" rx="84" ry="4" fill="var(--line)"/>'+body+win+rack+wing+
+  '<rect x="16" y="38" width="170" height="24" rx="10" fill="'+col+'"/><rect x="16" y="38" width="170" height="9" rx="6" fill="#fff" opacity=".16"/><rect x="16" y="54" width="170" height="8" rx="4" fill="#000" opacity=".16"/>'+
+  '<line x1="100" y1="42" x2="100" y2="58" stroke="#000" stroke-width=".9" opacity=".28"/><rect x="78" y="46" width="6" height="1.8" rx=".9" fill="#000" opacity=".4"/><rect x="108" y="46" width="6" height="1.8" rx=".9" fill="#000" opacity=".4"/>'+
+  '<path d="M178 42 h8 q2 2 0 6 h-8z" fill="#f4eebc"/><path d="M16 43 h7 v5 h-7z" fill="#b22b2b"/><rect x="170" y="52" width="14" height="4" rx="1" fill="#000" opacity=".35"/>'+rw(52)+rw(148)+'</svg>'}
+const SKIN=['#f1d3b8','#e0b48f','#bf8d63','#8c5a3a','#5e3a24'],HAIR=['#16120e','#4a2e1b','#8a5a2b','#c9a15a','#b8b8b8','#a03a24'],SHIRT=['#1d5fa6','#b4561c','#1f7a4d','#6b2a35','#3a4750','#b59a5a'];
+function avatarSVG(p,sz){p=p||{skin:1,hair:1,style:0,shirt:0};const sk=SKIN[p.skin||0],hr=HAIR[p.hair||0],sh=SHIRT[p.shirt||0],st=p.style||0;
+  const hairBack=st===2?'<path d="M22 44 q-2 30 8 34 h40 q10 -4 8 -34 q-8 -30 -28 -30 q-20 0 -28 30z" fill="'+hr+'"/>':'';
+  const hairTop=st===0?'<path d="M26 38 q2 -22 24 -22 q22 0 24 22 q-10 -10 -24 -10 q-14 0 -24 10z" fill="'+hr+'"/>':st===1?'<path d="M28 34 q4 -16 22 -16 q18 0 22 16z" fill="'+hr+'"/>':st===2?'<path d="M26 40 q2 -24 24 -24 q22 0 24 24 q-10 -12 -24 -12 q-14 0 -24 12z" fill="'+hr+'"/>':'<path d="M27 36 q2 -20 23 -20 q21 0 23 20 q-6 -4 -12 -6 q-12 4 -34 6z" fill="'+hr+'"/><rect x="30" y="22" width="40" height="5" rx="2.5" fill="'+sh+'"/>';
+  return '<svg viewBox="0 0 100 100" width="'+(sz||72)+'" height="'+(sz||72)+'" class="avatar" role="img" aria-label="Character portrait"><rect width="100" height="100" rx="12" fill="var(--panel2)"/>'+hairBack+'<path d="M14 100 q4 -26 36 -26 q32 0 36 26z" fill="'+sh+'"/><rect x="42" y="62" width="16" height="14" fill="'+sk+'"/><ellipse cx="50" cy="46" rx="21" ry="24" fill="'+sk+'"/>'+hairTop+
+  '<circle cx="42" cy="48" r="2.4" fill="#1b1b1b"/><circle cx="58" cy="48" r="2.4" fill="#1b1b1b"/><path d="M43 59 q7 5 14 0" fill="none" stroke="#7a3a2a" stroke-width="2" stroke-linecap="round"/></svg>'}
+const BG={
+ none:{n:'Clean slate',d:'No head start, no baggage. Every skill starts at level 2.',sk:{neg:5,mech:5,body:5,appr:5,paper:5,mkt:5,net:5},cash:2000},
+ wrench:{n:'Garage kid',d:'Grew up in your uncle’s shop. Strong mechanic and a scanner of your own, but you spent savings on tools. Start with $1,850.',sk:{mech:14,body:5},cash:1850,tools:{obd:true}},
+ sales:{n:'Ex-dealership salesperson',d:'Great negotiator and good at ads. Dealers’ reputation follows you: reputation starts at 40.',sk:{neg:14,mkt:5},cash:2000,rep:40},
+ clerk:{n:'Paralegal',d:'Paperwork and legal filings come easy, with a head for appraisal. You know little about engines.',sk:{paper:14,appr:5},cash:2000},
+ social:{n:'Well connected',d:'Everyone owes you a favour. Strong network and three favours banked. Start with $2,000 but poor appraisal.',sk:{net:14},cash:2000,favours:3},
+ auction:{n:'Auction regular',d:'Years of watching cars sell. Sharp appraisal and marketing. Start with $1,900 after a bad bid.',sk:{appr:14,mkt:5},cash:1900}};
+const defPl=()=>({name:'',skin:1,hair:1,style:0,shirt:0,bg:'none'});
+function applyPlayer(){const p=Object.assign(defPl(),UI.pl||{});if(!p.name.trim())p.name='Alex';S.player=p;const b=BG[p.bg]||BG.none;S.cash=b.cash;Object.keys(b.sk).forEach(k=>S.skills[k]=b.sk[k]);
+  if(b.tools)Object.assign(S.tools,b.tools);if(b.rep)S.rep=b.rep;if(b.favours)S.favours=b.favours;S.peak=S.cash}
+function swatches(k,arr,cur){return '<div class="row">'+arr.map((c,i)=>'<button class="chip" style="width:30px;height:30px;padding:0;border-radius:50%;background:'+c+';'+(cur===i?'outline:3px solid var(--acc);outline-offset:2px':'')+'" aria-label="'+k+' '+(i+1)+'" data-a="p'+k+'" data-v="'+i+'"></button>').join('')+'</div>'}
+function charHTML(){UI.pl=UI.pl||defPl();const p=UI.pl;
+  return '<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px">Create your character</h3><div class="card" style="margin-bottom:12px"><div class="row" style="align-items:flex-start;gap:16px">'+avatarSVG(p,96)+
+  '<div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px"><label class="mute" for="pname">Name</label><input id="pname" class="field" maxlength="24" placeholder="Your name" value="'+p.name.replace(/"/g,'')+'" style="max-width:260px"><span class="mute">Skin</span>'+swatches('skin',SKIN,p.skin)+'<span class="mute">Hair</span>'+swatches('hair',HAIR,p.hair)+
+  '<span class="mute">Style</span><div class="row">'+['Short','Cropped','Long','Cap'].map((n,i)=>'<button class="chip '+(p.style===i?'on':'')+'" data-a="pstyle" data-v="'+i+'">'+n+'</button>').join('')+'</div><span class="mute">Shirt</span>'+swatches('shirt',SHIRT,p.shirt)+'</div></div></div>'+
+  '<h3 class="mute mono" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px">Background</h3><div class="grid2" style="margin-bottom:14px">'+Object.keys(BG).map(k=>'<button class="card" style="text-align:left;'+(p.bg===k?'border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)':'')+'" data-a="pbg" data-v="'+k+'"><b>'+BG[k].n+'</b><div class="mute">'+BG[k].d+'</div></button>').join('')+'</div>'}
+function playerCard(){const p=S.player;if(!p)return '';return '<div class="card" style="margin-bottom:12px"><div class="row" style="gap:14px">'+avatarSVG(p,64)+'<div><h4>'+p.name+'</h4><div class="mute">'+(BG[p.bg]||BG.none).n+' · '+RG.name+'</div></div></div></div>'}
+/* ---------- events ---------- */
+function act(a,id,v){const L=UI.sel&&UI.sel.t==='L'?LB(UI.sel.id):null,C=UI.sel&&UI.sel.t==='C'?CB(UI.sel.id):null;
+  if(S.over&&a!=='newgame'&&a!=='menu'&&a!=='tab')return;
+  switch(a){
+  case 'tab':UI.tab=v;UI.sel=null;UI.flash=[];break;
+  case 'menu':UI.menu=!UI.menu;break;
+  case 'newgame':UI.start=true;UI.menu=false;UI.pickReg=UI.pickReg||RG.id;UI.pickMode=S.mode;break;
+  case 'pskin':UI.pl.skin=+v;break;
+  case 'phair':UI.pl.hair=+v;break;
+  case 'pstyle':UI.pl.style=+v;break;
+  case 'pshirt':UI.pl.shirt=+v;break;
+  case 'pbg':UI.pl.bg=v;break;
+  case 'pickreg':UI.pickReg=v;break;
+  case 'pickmode':UI.pickMode=v;break;
+  case 'begin':startGame(UI.pickReg||'qc',UI.pickMode||'free');return;
+  case 'resume':UI.start=false;break;
+  case 'theme':cycleTheme();return;
+  case 'csave':saveCloud(+v);return;
+  case 'cload':loadCloud(+v);return;
+  case 'cdel':delCloud(+v);return;
+  case 'cauto':CLOUD.auto=!CLOUD.auto;setPref('cloudauto',CLOUD.auto?'1':'0');break;
+  case 'ibuy':invBuy(v,+UI.iamt);break;
+  case 'isell':invSell(v,+UI.iamt);break;
+  case 'isellall':invSell(v,0,true);break;
+  case 'auto':S.auto=!S.auto;break;
+  case 'intv':interview(+id);break;
+  case 'hire':hireCand(+id,v);break;
+  case 'fire':fireEmp(+id);break;
+  case 'raise':raiseAct(+id,v==='1');break;
+  case 'renew':renewAct(+id,v==='1');break;
+  case 'dd':dueDiligence(+id);break;
+  case 'angel':angelInvest(+id,v==='1');break;
+  case 'suitf':C&&fileSuit(C.uid,v);break;
+  case 'counsel':case 'settle':case 'go':case 'drop':suitAct(+id,a,v);break;
+  case 'iorder':L&&importOrder(L);break;
+  case 'impi':L&&impInspect(L);break;
+  case 'export':C&&exportCar(C.uid,v);break;
+  case 'swt':{const o=S.offers.find(x=>x.id===+id);if(o)swapTool(o,v)}break;
+  case 'syes':offerAct(+id,'yes');break;
+  case 'sctr':offerAct(+id,'ctr');break;
+  case 'sno':offerAct(+id,'no');break;
+  case 'selL':UI.sel={t:'L',id:+id};UI.flash=[];UI.offer='';break;
+  case 'selC':UI.sel={t:'C',id:+id};UI.flash=[];UI.sell={ask:'',disc:true,ad:0};break;
+  case 'close':UI.sel=null;break;
+  case 'endday':endDay();flash('A new day. '+S.listings.length+' listings on the board.');break;
+  case 'wait7':for(let i=0;i<7;i++)endDay();flash('A week passes.');break;
+  case 'fsrc':UI.filt.src=v;break;
+  case 'say':L&&say(L,v);break;
+  case 'meet':L&&meet(L);break;
+  case 'walk':L&&walkAround(L);break;
+  case 'drive':L&&testDrive(L);break;
+  case 'obd':L&&obd(L);break;
+  case 'hist':L&&history(L);break;
+  case 'ppi':L&&ppi(L);break;
+  case 'mech':L&&mechFriend(L);break;
+  case 'comp':L&&compression(L);break;
+  case 'deposit':L&&deposit(L);break;
+  case 'neg':L&&negotiate(L,+UI.offer);break;
+  case 'bid':L&&bid(L,+UI.offer);break;
+  case 'buy':L&&buy(L,v);break;
+  case 'diag':C&&diagnose(C);break;
+  case 'rep':C&&repair(C,id,v);break;
+  case 'body':if(C){const p=v.split(':');bodyFix(C,p[0],p[1])}break;
+  case 'reg':C&&register(C);break;
+  case 'lien':C&&payLien(C);break;
+  case 'tires':C&&tires(C);break;
+  case 'winter':C&&winterSet(C);break;
+  case 'detail':C&&detail(C,v);break;
+  case 'recall':C&&recall(C);break;
+  case 'parts':UI.parts=v;break;
+  case 'ad':UI.sell.ad=+v;break;
+  case 'disc':UI.sell.disc=!UI.sell.disc;break;
+  case 'list':C&&listCar(C);break;
+  case 'unlist':if(C){C.sale=null;flash('Taken off the market.')}break;
+  case 'wholesale':C&&wholesale(C);break;
+  case 'scrap':C&&scrapCar(C);break;
+  case 'partout':C&&partOut(C);break;
+  case 'oyes':offerAct(+id,'yes');break;
+  case 'octr':offerAct(+id,'ctr');break;
+  case 'ono':offerAct(+id,'no');break;
+  case 'insure':if(v==='on'){const c=insM();if(S.cash<c)flash('Not enough cash.');else{S.cash-=c;S.ins=true;log('Insurance, first month',-c);flash('Insured.')}}else{S.ins=false;S.cars.forEach(c=>{});flash('Policy cancelled. You cannot test drive or drive a registered car.')}break;
+  case 'tool':{const p=v==='obd'?70:120;if(S.cash<p)flash('Not enough cash.');else{S.cash-=p;S.tools[v]=true;log('Bought '+(v==='obd'?'OBD-II scanner':'compression kit'),-p)}}break;
+  case 'slot':if(S.cash<150)flash('Need $150.');else{S.cash-=150;S.slots++;log('Rented parking spot',-150)}break;
+  case 'loan':if(S.debt+ +v>loanLimit()){flash('Your credit limit is '+fmt(loanLimit())+'.');break}S.cash+=+v;S.debt+=+v;log('Loan taken',+v);break;
+  case 'repay':{const x=Math.min(S.cash,S.debt);S.cash-=x;S.debt-=x;log('Loan repayment',-x)}break;
+  case 'lic':S.cash-=3000;S.lic=true;log('Dealer licence',-3000);flash('You are now a licensed dealer.');break;
+  case 'partner':S.partners[v]=true;flash('Partnership agreed.');break;
+  }
+  checkEnd();render()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.tagName==='SELECT'||b.tagName==='OPTION')return;act(b.dataset.a,b.dataset.id,b.dataset.v)});
+document.addEventListener('change',e=>{const t=e.target;if(t.id==='fsort'){UI.filt.sort=t.value;render()}else if(t.id==='fmax'){UI.filt.max=+t.value;render()}});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='offer')UI.offer=t.value;else if(t.id==='ask')UI.sell.ask=t.value;else if(t.id==='iamt')UI.iamt=t.value;else if(t.id==='pname'){UI.pl=UI.pl||defPl();UI.pl.name=t.value}});
+function start(){setRegion(S.region||'qc');ensureAll();applyTheme();if(UI.start===undefined&&!window.__loaded)UI.start=true;render();initCloud()}
+function loadSaved(){try{const s=JSON.parse(localStorage.getItem(SAVEKEY));if(s&&s.v===1&&s.cars&&s.listings)return s}catch(e){}return null}
+const boot=d=>{const sv=(d&&d.S)||loadSaved();window.__loaded=!!sv;S=sv||(()=>{const s=newState('free');S=s;setRegion('qc');ensureInv();seedMarket();return s})();start()};
+try{if(window.claude&&window.claude.hot&&window.claude.hot.snapshot)window.claude.hot.snapshot(()=>({S}))}catch(e){}
+(window.claude&&window.claude.hot&&window.claude.hot.ready)?window.claude.hot.ready(boot):boot(window.claude&&window.claude.hot?window.claude.hot.data:null);
+</script>
+
+</body></html>

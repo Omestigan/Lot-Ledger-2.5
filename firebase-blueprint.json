@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public profile and account stats for an online dealer",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "dealershipName": { "type": "string", "maxLength": 120 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "netWorth": { "type": "number" },
+        "reputation": { "type": "number" },
+        "lastActive": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "displayName", "dealershipName", "lastActive"]
+    },
+    "SaveSlot": {
+      "title": "Save Slot",
+      "description": "Cloud save state for a user slot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "slotNumber": { "type": "number" },
+        "dealershipName": { "type": "string", "maxLength": 120 },
+        "cash": { "type": "number" },
+        "netWorth": { "type": "number" },
+        "reputation": { "type": "number" },
+        "carsOwned": { "type": "number" },
+        "connectionsCount": { "type": "number" },
+        "gameState": { "type": "string", "maxLength": 500000 },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "userId", "slotNumber", "gameState", "updatedAt"]
+    },
+    "B2BOffer": {
+      "title": "B2B Trade Offer",
+      "description": "Multiplayer wholesale car listing on the live B2B network",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "sellerId": { "type": "string", "maxLength": 128 },
+        "sellerName": { "type": "string", "maxLength": 100 },
+        "sellerDealership": { "type": "string", "maxLength": 120 },
+        "carTitle": { "type": "string", "maxLength": 150 },
+        "make": { "type": "string", "maxLength": 80 },
+        "model": { "type": "string", "maxLength": 80 },
+        "year": { "type": "number" },
+        "mileage": { "type": "number" },
+        "condition": { "type": "number" },
+        "askingPrice": { "type": "number" },
+        "carData": { "type": "string", "maxLength": 50000 },
+        "status": { "type": "string", "enum": ["active", "sold", "cancelled"] },
+        "buyerId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "sellerId", "sellerName", "carTitle", "askingPrice", "carData", "status", "createdAt"]
+    },
+    "LiveChat": {
+      "title": "Live Chat Message",
+      "description": "Community global chat message between live dealers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "dealershipName": { "type": "string", "maxLength": 120 },
+        "message": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "senderId", "senderName", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and online dealer status"
+    },
+    "/save_slots/{slotId}": {
+      "schema": "SaveSlot",
+      "description": "Cloud game save data for each slot"
+    },
+    "/b2b_offers/{offerId}": {
+      "schema": "B2BOffer",
+      "description": "Multiplayer B2B wholesale vehicle trade market"
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "LiveChat",
+      "description": "Live global dealership chat messages"
+    }
+  }
+}
