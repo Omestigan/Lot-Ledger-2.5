@@ -1053,6 +1053,7 @@ export default function App() {
             onOpenCharacterCreator={() => setIsCharCreatorOpen(true)}
             onOpenTutorial={() => setIsTutorialOpen(true)}
             onNavigateTab={(tab) => setActiveTab(tab)}
+            onOpenAccounts={() => setIsAccountsModalOpen(true)}
             hasActiveGame={state.cars.length > 0 || state.day > 1}
           />
         )}
@@ -1094,6 +1095,7 @@ export default function App() {
             onBuyCarFromB2B={handleBuyCarFromB2B}
             onSellCarToB2B={handleSellCarToB2B}
             onFlash={addFlash}
+            onOpenAccounts={() => setIsAccountsModalOpen(true)}
           />
         )}
 
