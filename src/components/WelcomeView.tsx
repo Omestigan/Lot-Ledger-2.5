@@ -6,6 +6,7 @@ import {
 import heroDealership from '../assets/images/lot_dealership_hero_1793325465223.jpg';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { STARTING_ROLES } from '../game/roles';
 
 interface WelcomeViewProps {
   onStartGame: () => void;
@@ -215,6 +216,61 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({
               Over 68 authentic models across 9 classes. Simulated catalytic converter clogs, Takata airbag recalls, timing chain stretch, and Quebec road salt rocker rust.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* 7 Starting Roles Showcase */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="font-display font-bold text-xl text-slate-900 dark:text-white">
+              7 Distinct Starting Roles &amp; Character Archetypes
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Select your persona at game creation to define starting cash, tools, network connections, and bonuses.
+            </p>
+          </div>
+          <button
+            onClick={onOpenCharacterCreator}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <span>Choose Role</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          {STARTING_ROLES.map((role) => (
+            <div
+              key={role.id}
+              className="liquid-glass-card rounded-2xl p-4.5 space-y-2.5 border border-slate-200/60 dark:border-slate-700/50 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-3xl p-2 rounded-2xl bg-white/20 dark:bg-white/5 border border-white/10">
+                    {role.avatarIcon}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/25">
+                    ${role.startingCash.toLocaleString()} Cash
+                  </span>
+                </div>
+                <h4 className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                  {role.name}
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
+                  {role.tagline}
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block truncate">
+                  ✨ {role.perks[0]}
+                </span>
+                <span className="text-[9px] font-mono text-blue-600 dark:text-blue-400 block truncate">
+                  Badge: {role.badge}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

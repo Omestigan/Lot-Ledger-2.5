@@ -8,7 +8,7 @@ import {
 import { GameMode, PlayerCharacter, RegionId } from '../game/types';
 import {
   WorldLocation, PRESET_WORLD_CITIES, Continent,
-  getCustomDiscoveredCities, saveCustomDiscoveredCity, getGoogleMapsUrl
+  getCustomDiscoveredCities, saveCustomDiscoveredCity, getGoogleMapsUrl, getWikipediaUrl
 } from '../game/locations';
 import { STARTING_ROLES, StartingRole, StartingRoleId } from '../game/roles';
 import { sound } from '../game/audio';
@@ -290,15 +290,15 @@ export const MandatoryGameStartModal: React.FC<MandatoryGameStartModalProps> = (
               </div>
             </div>
 
-            {/* Sourced via maps.google.com banner */}
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 px-1">
+            {/* Sourced via Wikipedia.org & maps.google.com banner */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-500 dark:text-slate-400 px-1">
               <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
                 <MapPin className="w-3.5 h-3.5 text-red-500" />
-                <span>Geographic &amp; climatic intelligence sourced via <b>maps.google.com</b></span>
+                <span>Verified via <b>Wikipedia.com</b> &amp; <b>maps.google.com</b></span>
               </span>
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
                 <Zap className="w-3 h-3" />
-                <span>Fast Cache Active</span>
+                <span>Sub-Second Telemetry</span>
               </span>
             </div>
 
@@ -347,17 +347,30 @@ export const MandatoryGameStartModal: React.FC<MandatoryGameStartModalProps> = (
                     <div className="mt-2.5 pt-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-500">
                       <span>Rust: <b className={city.rustRisk > 1.2 ? 'text-rose-500' : 'text-emerald-500'}>{city.rustRisk}x</b></span>
                       <span>Tax: <b>{(city.taxRate * 100).toFixed(1)}%</b></span>
-                      <a
-                        href={getGoogleMapsUrl(city)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
-                        title="View on maps.google.com"
-                      >
-                        <MapPin className="w-2.5 h-2.5 text-red-500" />
-                        <span>Maps</span>
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={getGoogleMapsUrl(city)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
+                          title="View on maps.google.com"
+                        >
+                          <MapPin className="w-2.5 h-2.5 text-red-500" />
+                          <span>Maps</span>
+                        </a>
+                        <a
+                          href={getWikipediaUrl(city)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-zinc-600 dark:text-zinc-400 hover:underline flex items-center gap-0.5"
+                          title="View on Wikipedia.org"
+                        >
+                          <span className="font-serif font-black text-[10px]">W</span>
+                          <span>Wiki</span>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 );

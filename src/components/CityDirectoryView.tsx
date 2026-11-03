@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   WorldLocation, PRESET_WORLD_CITIES, Continent,
-  getCustomDiscoveredCities, saveCustomDiscoveredCity, getGoogleMapsUrl
+  getCustomDiscoveredCities, saveCustomDiscoveredCity, getGoogleMapsUrl, getWikipediaUrl
 } from '../game/locations';
 import { sound } from '../game/audio';
 
@@ -149,6 +149,17 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
                   <span>maps.google.com</span>
                   <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                 </a>
+                <a
+                  href={getWikipediaUrl(currentLocation)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-mono px-3 py-1 rounded-full liquid-glass-button flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white"
+                  title="View on Wikipedia.org"
+                >
+                  <span className="font-serif font-black text-xs leading-none">W</span>
+                  <span>wikipedia.org</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                </a>
               </div>
               <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1.5 max-w-2xl font-mono leading-relaxed">
                 {currentLocation.experienceHighlight}
@@ -189,17 +200,17 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
               <h2 className="font-display font-bold text-base tracking-tight text-zinc-900 dark:text-zinc-100">
-                Discover Any City on Earth (Gemini AI + maps.google.com)
+                Discover Any City on Earth (Gemini 3.6 + Wikipedia.com + Google Maps)
               </h2>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
-              Type any city across any continent. Sourced with verified GPS coordinates via Google Maps and analyzed with sub-second Gemini 3.8 Flash intelligence.
+              Type any city across any continent. Grounded with live Wikipedia.com summaries, verified road inspection bureaus, official currencies, and Google Maps GPS coordinates via Gemini 3.6 Flash.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1 font-semibold">
-              <Zap className="w-3 h-3" />
-              <span>FAST &lt;50ms CACHE</span>
+            <span className="text-[10px] font-mono text-zinc-700 dark:text-zinc-300 bg-zinc-200/60 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 px-2.5 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+              <span className="font-serif font-black text-[11px]">W</span>
+              <span>WIKIPEDIA.ORG</span>
             </span>
             <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/10 px-2.5 py-0.5 rounded-full">
               MAPS.GOOGLE.COM
@@ -269,7 +280,7 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <a
                   href={getGoogleMapsUrl(analyzedCity)}
                   target="_blank"
@@ -278,7 +289,19 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
                   title="Verify on Google Maps"
                 >
                   <MapPin className="w-3.5 h-3.5 text-red-500" />
-                  <span>View on maps.google.com</span>
+                  <span>maps.google.com</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+
+                <a
+                  href={getWikipediaUrl(analyzedCity)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 liquid-glass-button text-xs font-mono font-bold rounded-xl flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white"
+                  title="Verify on Wikipedia.org"
+                >
+                  <span className="font-serif font-black text-xs leading-none">W</span>
+                  <span>wikipedia.org</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
 

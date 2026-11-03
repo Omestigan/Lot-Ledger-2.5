@@ -32,13 +32,19 @@ export interface WorldLocation {
   description: string;
   experienceHighlight: string;
   mapsUrl?: string; // Direct verified link to Google Maps (maps.google.com)
-  mapsSource?: string; // e.g. "maps.google.com"
+  wikipediaUrl?: string; // Direct verified link to Wikipedia.com
+  mapsSource?: string; // e.g. "maps.google.com & wikipedia.org"
   responseTimeMs?: number; // Measured telemetry discovery latency in ms
 }
 
 export function getGoogleMapsUrl(loc: WorldLocation): string {
   if (loc.mapsUrl) return loc.mapsUrl;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.city}, ${loc.country}`)}`;
+}
+
+export function getWikipediaUrl(loc: WorldLocation): string {
+  if (loc.wikipediaUrl) return loc.wikipediaUrl;
+  return `https://en.wikipedia.org/wiki/${encodeURIComponent(loc.city)}`;
 }
 
 
