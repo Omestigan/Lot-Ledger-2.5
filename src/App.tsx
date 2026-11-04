@@ -295,14 +295,19 @@ export default function App() {
         .forEach((c) => {
           if (Math.random() < 0.35) {
             const mv = worth(c, c.sale!.disc ? 'known' : 'seen', activePerks);
-            const amt = Math.round((c.sale!.ask * (0.85 + Math.random() * 0.15)) / 25) * 25;
+            const isTuned = Boolean(c.tuning?.parts && c.tuning.parts.length > 0);
+            const targetBase = Math.min(c.sale!.ask, Math.max(mv * 0.92, c.sale!.ask * 0.88));
+            const amt = Math.round((targetBase * (0.92 + Math.random() * 0.12)) / 25) * 25;
+            const buyerMsg = isTuned
+              ? `Saw your tuned ${CAT[c.cid].name}! Great dyno build (${c.perfMetrics?.hp || 320} HP). Would you take cash today?`
+              : 'Hello, saw your listing. Would you take cash today?';
             next.offers.unshift({
               id: next.lid++,
               uid: c.uid,
               exp: next.day + 2,
               amt,
-              willing: Math.round(amt * 1.05),
-              msg: 'Hello, saw your listing. Would you take cash today?',
+              willing: Math.round(Math.max(amt * 1.05, Math.min(c.sale!.ask, mv * 1.04))),
+              msg: buyerMsg,
               type: 'ok',
             });
           }
@@ -1751,9 +1756,19 @@ export default function App() {
               const next = { ...prev };
               next.cash -= totalCost;
               next.cars = next.cars.map((c) => (c.uid === carUid ? updatedCar : c));
+              if (totalCost > 0) {
+                next.log.unshift({
+                  d: next.day,
+                  m: `Dyno tuning upgrades installed on ${updatedCar.adTitle}`,
+                  $: -totalCost,
+                });
+              }
               return next;
             });
-            addFlash(`Fitted custom performance tuning to ${updatedCar.adTitle}!`);
+            if (selectedCar?.uid === carUid) {
+              setSelectedCar(updatedCar);
+            }
+            addFlash(`Fitted custom performance tuning to ${updatedCar.adTitle}! Invested basis updated to ${fmt(updatedCar.basis)}.`);
           }}
         />
       )}

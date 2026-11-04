@@ -470,3 +470,45 @@ export const RACE_TRACKS: RaceTrack[] = [
     favorsClass: 'balanced',
   },
 ];
+
+/**
+ * Calculates the market value added by aftermarket performance parts and Dyno calibration.
+ * High quality tuning retains 75% to 92% of parts investment on sports, coupes, and sedans.
+ */
+export function calculateCarTuningValueBonus(car: Car, entry?: CarCatalogEntry): {
+  partsCost: number;
+  addedWorth: number;
+} {
+  const partsIds = car.tuning?.parts || [];
+  if (partsIds.length === 0) {
+    return { partsCost: 0, addedWorth: 0 };
+  }
+
+  const e = entry || CAT[car.cid];
+  const parts = TUNING_PARTS_CATALOG.filter((part) => partsIds.includes(part.id));
+  const partsCost = parts.reduce((sum, p) => sum + p.cost, 0);
+
+  const cls = e ? e.cls : 'sedan';
+  // Sports, coupes, and hot hatches command highest aftermarket tuning premiums
+  const retentionRate =
+    cls === 'sport' ? 0.90 :
+    cls === 'conv' ? 0.86 :
+    cls === 'lux' ? 0.84 :
+    cls === 'hatch' ? 0.82 :
+    cls === 'sedan' ? 0.78 :
+    0.70;
+
+  // Stage multipliers: stage 2 and stage 3 high-performance setups attract serious enthusiast premiums
+  const hasStage3 = parts.some((p) => p.stage === 3);
+  const hasStage2 = parts.some((p) => p.stage === 2);
+  const stageMultiplier = hasStage3 ? 1.15 : hasStage2 ? 1.08 : 1.0;
+
+  let addedWorth = Math.round(partsCost * retentionRate * stageMultiplier);
+
+  // Boost wastegate calibration premium
+  if (car.tuning?.boostPsi && car.tuning.boostPsi > 0) {
+    addedWorth += Math.round(car.tuning.boostPsi * 50);
+  }
+
+  return { partsCost, addedWorth };
+}

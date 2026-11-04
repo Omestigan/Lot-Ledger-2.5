@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { Car, ConnectionPerk, Region } from '../game/types';
 import { CAT } from '../game/data';
-import { fmt } from '../game/valuation';
+import { fmt, worth } from '../game/valuation';
 import { sound } from '../game/audio';
 import {
   TUNING_PARTS_CATALOG,
@@ -63,6 +63,11 @@ export const CarTuningModal: React.FC<CarTuningModalProps> = ({
   };
   const previewMetrics = calculateCarPerformanceMetrics(previewCar, catalogEntry);
 
+  // Calculate current market worth vs projected tuned worth
+  const currentWorth = worth(car, 'known');
+  const previewWorth = worth(previewCar, 'known');
+  const worthDelta = previewWorth - currentWorth;
+
   // Compute newly added parts cost (discount applied)
   const previouslyInstalled = car.tuning?.parts || [];
   const newlyAddedPartIds = installedPartIds.filter((id) => !previouslyInstalled.includes(id));
@@ -87,8 +92,14 @@ export const CarTuningModal: React.FC<CarTuningModalProps> = ({
       return;
     }
     sound.playCash();
+    const currentTuningInvested = (car.tuning?.totalInvested || 0) + totalCost;
     const updatedCar: Car = {
       ...previewCar,
+      basis: (car.basis || 0) + totalCost,
+      tuning: {
+        ...previewCar.tuning,
+        totalInvested: currentTuningInvested,
+      },
       modded: installedPartIds.length > 0 || boostPsi > 0,
       perfMetrics: previewMetrics,
     };
@@ -422,13 +433,39 @@ export const CarTuningModal: React.FC<CarTuningModalProps> = ({
 
         {/* Bottom Action Footer */}
         <div className="p-4 border-t border-zinc-800 bg-zinc-950 flex flex-wrap items-center justify-between gap-4">
-          <div className="text-xs font-mono">
-            <span className="text-zinc-500 block">Total Dyno &amp; Parts Bill</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-black text-white">{fmt(totalCost)}</span>
-              <span className="text-zinc-400">
-                (Your Cash: <span className={playerCash < totalCost ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>{fmt(playerCash)}</span>)
-              </span>
+          <div className="flex flex-wrap items-center gap-6 text-xs font-mono">
+            <div>
+              <span className="text-zinc-500 block text-[10px] uppercase font-bold">Total Dyno Bill</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-black text-white">{fmt(totalCost)}</span>
+                <span className="text-zinc-400">
+                  (Cash: <span className={playerCash < totalCost ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>{fmt(playerCash)}</span>)
+                </span>
+              </div>
+            </div>
+
+            <div className="hidden sm:block border-l border-zinc-800 pl-4">
+              <span className="text-zinc-500 block text-[10px] uppercase font-bold">Invested Basis</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-zinc-400">{fmt(car.basis)}</span>
+                <span className="text-zinc-500">→</span>
+                <span className="text-white font-bold">{fmt(car.basis + totalCost)}</span>
+                {totalCost > 0 && <span className="text-emerald-400 font-bold text-[11px]">(+{fmt(totalCost)})</span>}
+              </div>
+            </div>
+
+            <div className="border-l border-zinc-800 pl-4">
+              <span className="text-zinc-500 block text-[10px] uppercase font-bold">Est. Market Valuation</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-zinc-400">{fmt(currentWorth)}</span>
+                <span className="text-zinc-500">→</span>
+                <span className="text-amber-400 font-bold">{fmt(previewWorth)}</span>
+                {worthDelta !== 0 && (
+                  <span className={worthDelta > 0 ? 'text-emerald-400 font-bold text-[11px]' : 'text-rose-400 font-bold text-[11px]'}>
+                    ({worthDelta > 0 ? '+' : ''}{fmt(worthDelta)})
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

@@ -113,6 +113,7 @@ export interface Car {
     suspensionStiffness?: number;
     aeroWing?: boolean;
     exhaustNote?: 'quiet' | 'sport' | 'straightpipe';
+    totalInvested?: number;
   };
   perfMetrics?: {
     hp: number;

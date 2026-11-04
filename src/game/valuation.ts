@@ -1,5 +1,6 @@
 import { CAT, WT, TRIMM, RUSTP, INTP, RUSTN } from './data';
 import { Car, CarCatalogEntry, ConnectionPerk, Listing, Region } from './types';
+import { calculateCarTuningValueBonus } from './tuning';
 
 export const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 
@@ -79,7 +80,10 @@ export function worth(c: Car, mode: 'true' | 'seen' | 'known', perks: Connection
   p *= 1 - INTP[c.interior];
   if (c.water && (tru || (kn && K.water))) p *= 0.85;
   if (c.tread < 25) p *= 0.97;
-  if (c.modded) p *= 0.93;
+  
+  // Shady beater modification penalty ONLY applies if the car lacks authentic Dyno tuning
+  const hasDynoTune = Boolean(c.tuning?.parts && c.tuning.parts.length > 0);
+  if (c.modded && !hasDynoTune) p *= 0.93;
   if (c.recall && (tru || (kn && K.hist))) p *= 0.95;
 
   const tt = tru ? c.title : kn && K.hist ? K.hist.title : c.adTitle;
@@ -88,7 +92,10 @@ export function worth(c: Car, mode: 'true' | 'seen' | 'known', perks: Connection
   if (c.use !== 'personal' && (tru || (kn && K.hist))) p *= 0.93;
   if (c.detail) p *= 1.03;
 
-  v = v * p + Math.min(3, c.receipts) * 250;
+  // Add aftermarket Dyno performance tuning value retention
+  const { addedWorth: tuningAddedWorth } = calculateCarTuningValueBonus(c, e);
+
+  v = v * p + Math.min(3, c.receipts) * 250 + tuningAddedWorth;
   if (!c.regd && c.reg !== 'valid') v -= 200;
 
   return Math.max(scrapV(c, perks), Math.round(v / 10) * 10);

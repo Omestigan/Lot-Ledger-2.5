@@ -148,8 +148,13 @@ export const GarageView: React.FC<GarageViewProps> = ({
                         )}
                       </div>
 
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {car.km.toLocaleString()} km · Invested: <b className="font-mono text-slate-700 dark:text-slate-300">{fmt(car.basis)}</b>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <span>{car.km.toLocaleString()} km · Invested: <b className="font-mono text-slate-700 dark:text-slate-300">{fmt(car.basis)}</b></span>
+                        {car.tuning?.totalInvested ? (
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-bold">
+                            ⚡ {fmt(car.tuning.totalInvested)} tuned
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -225,8 +230,14 @@ export const GarageView: React.FC<GarageViewProps> = ({
                   Est: {fmt(estLo)} – {fmt(estHi)}
                 </span>
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Invested basis: <b className="text-slate-700 dark:text-slate-300 font-mono">{fmt(selectedCar.basis)}</b> · Title: {selectedCar.title}
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-1.5">
+                <span>Invested basis: <b className="text-slate-700 dark:text-slate-300 font-mono">{fmt(selectedCar.basis)}</b></span>
+                {selectedCar.tuning?.totalInvested ? (
+                  <span className="text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400">
+                    (incl. {fmt(selectedCar.tuning.totalInvested)} dyno tuning)
+                  </span>
+                ) : null}
+                <span>· Title: {selectedCar.title}</span>
               </div>
             </div>
 

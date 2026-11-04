@@ -326,7 +326,7 @@ export const DealershipEmpireMapView: React.FC<DealershipEmpireMapViewProps> = (
                     >
                       {state.cars.map((c: Car) => (
                         <option key={c.uid} value={c.uid}>
-                          {c.adTitle}
+                          {c.adTitle} (Invested: {fmt(c.basis)})
                         </option>
                       ))}
 
