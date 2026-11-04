@@ -109,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Lot &amp; Ledger
                 </span>
                 <span className="text-[10px] font-mono tracking-normal text-zinc-400 font-semibold flex items-center gap-1">
-                  <span>v2.0 Network</span>
+                  <span>v2.5 AI</span>
                   <span className="text-[9px] font-extrabold text-amber-400 tracking-wider">BETA</span>
                 </span>
               </div>
