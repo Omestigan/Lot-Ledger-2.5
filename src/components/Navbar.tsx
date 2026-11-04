@@ -8,6 +8,7 @@ import { fmt } from '../game/valuation';
 import { GameState } from '../game/engine';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { sound } from '../game/audio';
 
 interface NavbarProps {
   state: GameState;
@@ -85,31 +86,34 @@ export const Navbar: React.FC<NavbarProps> = ({
   });
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0a1835]/96 dark:bg-[#050e20]/98 text-white border-b border-blue-900/60 shadow-2xl backdrop-blur-2xl transition-colors">
+    <header className="sticky top-0 z-40 bg-zinc-950/88 dark:bg-zinc-950/90 text-white border-b border-zinc-800/80 shadow-2xl backdrop-blur-xl transition-all">
       {/* Upper Status Ribbon */}
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs border-b border-blue-900/40">
+      <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs border-b border-zinc-800/60">
         {/* Brand / Logo - Sits flush on background with NO weird rectangle outline and NO highlighting */}
         <div className="flex items-center gap-3">
           <button
-            onClick={onOpenWelcome}
+            onClick={() => {
+              sound.playClick();
+              onOpenWelcome();
+            }}
             className="flex items-center gap-2.5 group text-left focus:outline-none cursor-pointer p-0 bg-transparent border-0"
             title="View Welcome & Guide"
           >
             {/* Sleek Borderless L&L Emblem */}
-            <div className="w-8 h-8 flex items-center justify-center font-display font-black text-sm tracking-tighter text-blue-300 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 flex items-center justify-center font-display font-black text-sm tracking-tighter text-zinc-100 group-hover:text-white transition-colors">
               <span className="text-xl leading-none font-extrabold select-none">🏎️</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display font-black text-base tracking-tight text-white group-hover:text-blue-100 transition-colors">
+                <span className="font-display font-black text-base tracking-tight text-white group-hover:text-zinc-200 transition-colors">
                   Lot &amp; Ledger
                 </span>
-                <span className="text-[10px] font-mono tracking-normal text-blue-300 font-semibold flex items-center gap-1">
+                <span className="text-[10px] font-mono tracking-normal text-zinc-400 font-semibold flex items-center gap-1">
                   <span>v2.0 Network</span>
                   <span className="text-[9px] font-extrabold text-amber-400 tracking-wider">BETA</span>
                 </span>
               </div>
-              <span className="text-[11px] text-blue-200/70 block leading-none mt-0.5">
+              <span className="text-[11px] text-zinc-400 block leading-none mt-0.5">
                 Automotive Trade &amp; Network Tycoon
               </span>
             </div>
@@ -118,22 +122,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Live HUD Stats */}
         <div className="flex items-center flex-wrap gap-4 text-xs font-mono">
-          <div className="flex items-center gap-1.5 text-blue-200/80">
-            <Calendar className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-blue-300/70">Day {state.day}:</span>
+          <div className="flex items-center gap-1.5 text-zinc-300">
+            <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="text-zinc-400">Day {state.day}:</span>
             <span className="font-semibold text-white">{dateStr}</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-blue-300/70">Cash:</span>
+            <span className="text-zinc-400">Cash:</span>
             <span className={`font-bold tabular-nums text-sm ${state.cash < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {fmt(state.cash)}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-blue-300/70">Net Worth:</span>
+            <span className="text-zinc-400">Net Worth:</span>
             <span className="font-bold text-white tabular-nums text-sm">
               {fmt(netWorth)}
             </span>
@@ -141,12 +145,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-blue-300/70">Visits:</span>
+            <span className="text-zinc-400">Visits:</span>
             <span className="font-semibold text-white">
               {state.visits}/3
             </span>
-            <span className="text-blue-400/50">·</span>
-            <span className="text-blue-300/70">Work:</span>
+            <span className="text-zinc-600">·</span>
+            <span className="text-zinc-400">Work:</span>
             <span className="font-semibold text-white">{state.hrs.toFixed(1)}h</span>
           </div>
         </div>
@@ -154,8 +158,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           <button
-            onClick={onOpenAiAdvisor}
-            className="px-3.5 py-1.5 text-xs font-bold bg-blue-900/70 hover:bg-blue-800 text-blue-100 border border-blue-700/60 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            onClick={() => {
+              sound.playClick();
+              onOpenAiAdvisor();
+            }}
+            className="px-3.5 py-1.5 text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-700/80 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
             title="Ask Dmitri — Automotive AI Advisor"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -163,49 +170,67 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={onOpenTutorial}
-            className="px-3 py-1.5 text-xs font-semibold bg-blue-950/80 hover:bg-blue-900 text-blue-200 border border-blue-800/80 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            onClick={() => {
+              sound.playClick();
+              onOpenTutorial();
+            }}
+            className="px-3 py-1.5 text-xs font-semibold bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
             title="Interactive Tutorial Walkthrough"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-blue-300" />
+            <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
             <span>Guide</span>
           </button>
 
           <button
-            onClick={onEndDay}
-            className="px-4 py-1.5 text-xs font-bold bg-white hover:bg-blue-50 text-slate-950 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            onClick={() => {
+              sound.playCash();
+              onEndDay();
+            }}
+            className="px-4 py-1.5 text-xs font-bold bg-white hover:bg-zinc-100 text-zinc-950 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
             End Day
           </button>
 
           <button
-            onClick={onWaitWeek}
-            className="px-3 py-1.5 text-xs font-medium bg-blue-900/50 hover:bg-blue-800/60 text-blue-200 border border-blue-700/50 rounded-xl transition-colors cursor-pointer"
+            onClick={() => {
+              sound.playCash();
+              onWaitWeek();
+            }}
+            className="px-3 py-1.5 text-xs font-medium bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/60 rounded-xl transition-colors cursor-pointer"
             title="Advance 7 days"
           >
             +7 Days
           </button>
 
           <button
-            onClick={onToggleSound}
-            className="p-1.5 text-blue-300 hover:text-white rounded-xl hover:bg-blue-800/50 transition-colors cursor-pointer"
+            onClick={() => {
+              sound.playClick();
+              onToggleSound();
+            }}
+            className="p-1.5 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800/80 transition-colors cursor-pointer"
             title={soundEnabled ? 'Mute Audio' : 'Enable Audio'}
           >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-300" /> : <VolumeX className="w-4 h-4 text-blue-400/50" />}
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-zinc-500" />}
           </button>
 
           <button
-            onClick={onToggleDarkMode}
-            className="p-1.5 text-blue-300 hover:text-white rounded-xl hover:bg-blue-800/50 transition-colors cursor-pointer"
+            onClick={() => {
+              sound.playClick();
+              onToggleDarkMode();
+            }}
+            className="p-1.5 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800/80 transition-colors cursor-pointer"
             title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
           >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-200" />}
+            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-zinc-300" />}
           </button>
 
           {authUser ? (
             <button
-              onClick={onOpenAccounts}
-              className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-900/60 hover:bg-blue-800/80 border border-blue-700/60 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
+              onClick={() => {
+                sound.playClick();
+                onOpenAccounts();
+              }}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
               title={`Google Account: ${authUser.displayName || authUser.email}`}
             >
               {authUser.photoURL ? (
@@ -218,8 +243,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           ) : (
             <button
-              onClick={onOpenAccounts}
-              className="px-3 py-1.5 text-xs font-bold text-slate-950 bg-white hover:bg-blue-50 border border-white/60 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              onClick={() => {
+                sound.playClick();
+                onOpenAccounts();
+              }}
+              className="px-3 py-1.5 text-xs font-bold text-zinc-950 bg-white hover:bg-zinc-100 border border-white/60 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               title="Sign in with Google"
             >
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -242,11 +270,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           return (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => {
+                sound.playTab();
+                onTabChange(tab.id);
+              }}
               className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all cursor-pointer shrink-0 active:scale-95 ${
                 isActive
-                  ? 'bg-white text-slate-950 shadow-md font-bold'
-                  : 'bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white'
+                  ? 'bg-white text-zinc-950 shadow-md font-bold'
+                  : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800/80'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -254,7 +285,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {tab.count !== undefined && tab.count !== '' && (
                 <span
                   className={`px-2 py-0.2 text-[10px] font-mono rounded-full font-semibold ${
-                    tab.badgeColor || (isActive ? 'bg-blue-600 text-white' : 'bg-white/20 text-blue-100')
+                    tab.badgeColor || (isActive ? 'bg-zinc-900 text-white' : 'bg-zinc-800 text-zinc-300')
                   }`}
                 >
                   {tab.count}
@@ -267,8 +298,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Floating Quick Consult Button */}
         <div className="ml-auto mr-1 shrink-0">
           <button
-            onClick={onOpenAiAdvisor}
-            className="px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+            onClick={() => {
+              sound.playClick();
+              onOpenAiAdvisor();
+            }}
+            className="px-3 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Consult Dmitri</span>
