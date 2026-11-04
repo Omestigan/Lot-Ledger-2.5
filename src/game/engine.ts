@@ -64,7 +64,21 @@ export interface GameState {
   // Imports / Exports
   imports: Listing[];
   transit: any[];
+  // Dealership Empire & Clash of Clans Map System
+  empire?: import('./empire').DealershipEmpireState;
+  // Racing Stats & Track Elo
+  racingStats?: {
+    wins: number;
+    losses: number;
+    winStreak: number;
+    pinkSlipsWon: number;
+    pinkSlipsLost: number;
+    totalEarnings: number;
+    eloRating: number;
+  };
 }
+
+
 
 export const LV = [0, 5, 14, 28, 48, 75, 110, 155, 210, 280];
 export const lv = (skills: Record<string, number>, k: string) =>
@@ -733,7 +747,96 @@ export function createNewGame(regionId: RegionId = 'qc', mode: GameMode = 'free'
     suits: [],
     imports: [],
     transit: [],
+    empire: {
+      level: 1,
+      reputationXp: 120,
+      gridWidth: 8,
+      gridHeight: 6,
+      buildings: [
+        {
+          id: 'bld_showroom',
+          typeId: 'showroom',
+          name: 'Executive Glass Showroom',
+          level: 1,
+          maxLevel: 5,
+          gridX: 2,
+          gridY: 1,
+          slotCapacityBonus: 2,
+          repBonus: 10,
+          revenuePerDay: 450,
+          tuningDiscountPct: 0,
+          unlockCost: 0,
+          upgradeCost: 5000,
+          description: 'Polished marble floor showroom with spotlight turntables. Increases lot slot capacity and customer walk-ins.',
+          icon: '🏛️',
+        },
+        {
+          id: 'bld_workshop',
+          typeId: 'workshop',
+          name: 'Master Mechanical Service Bay',
+          level: 1,
+          maxLevel: 5,
+          gridX: 5,
+          gridY: 1,
+          slotCapacityBonus: 1,
+          repBonus: 5,
+          revenuePerDay: 250,
+          tuningDiscountPct: 5,
+          unlockCost: 2000,
+          upgradeCost: 4000,
+          description: 'Equipped with hydraulic 2-post lifts, snap-on diagnostic rollaway toolboxes, and engine hoists.',
+          icon: '🔧',
+        },
+        {
+          id: 'bld_dyno_lab',
+          typeId: 'dyno_lab',
+          name: 'All-Wheel Dyno Tuning Cell',
+          level: 1,
+          maxLevel: 5,
+          gridX: 5,
+          gridY: 3,
+          slotCapacityBonus: 0,
+          repBonus: 8,
+          revenuePerDay: 600,
+          tuningDiscountPct: 10,
+          unlockCost: 4500,
+          upgradeCost: 6500,
+          description: 'In-ground high-speed AWD roller dynamometer with wideband exhaust sniffer and high-velocity cooling fans.',
+          icon: '🏎️',
+        },
+        {
+          id: 'bld_detailing_bay',
+          typeId: 'detailing_bay',
+          name: 'Ceramic Coating & Paint Booth',
+          level: 1,
+          maxLevel: 4,
+          gridX: 1,
+          gridY: 3,
+          slotCapacityBonus: 1,
+          repBonus: 6,
+          revenuePerDay: 350,
+          tuningDiscountPct: 0,
+          unlockCost: 3000,
+          upgradeCost: 4500,
+          description: 'Downdraft baking spray booth and dual-action rotary polishers for mirror finishes and ceramic wraps.',
+          icon: '✨',
+        },
+      ],
+      displayCars: [],
+      totalVisitorsToday: 24,
+      passiveDailyRevenue: 1650,
+    },
+    racingStats: {
+      wins: 0,
+      losses: 0,
+      winStreak: 0,
+      pinkSlipsWon: 0,
+      pinkSlipsLost: 0,
+      totalEarnings: 0,
+      eloRating: 1200,
+    },
   };
+
 
   // Seed stocks market history
   STOCKS.forEach((t) => {

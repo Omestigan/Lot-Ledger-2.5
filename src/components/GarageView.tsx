@@ -27,12 +27,14 @@ interface GarageViewProps {
   onScrap: (car: Car) => void;
   onPartOut: (car: Car) => void;
   onOpenInspector: (car: Car) => void;
+  onOpenTuningStudio?: (car: Car) => void;
   slots: number;
   region: Region;
   activePerks: ConnectionPerk[];
   apprLevel: number;
   mechLevel: number;
 }
+
 
 export const GarageView: React.FC<GarageViewProps> = ({
   cars,
@@ -52,6 +54,7 @@ export const GarageView: React.FC<GarageViewProps> = ({
   onScrap,
   onPartOut,
   onOpenInspector,
+  onOpenTuningStudio,
   slots,
   region,
   activePerks,
@@ -193,16 +196,25 @@ export const GarageView: React.FC<GarageViewProps> = ({
                   {selectedCar.color?.[0] || 'Factory'}
                 </span>
               </div>
-              <div className="absolute bottom-2.5 right-3">
+              <div className="absolute bottom-2.5 right-3 flex items-center gap-2">
+                {onOpenTuningStudio && (
+                  <button
+                    onClick={() => onOpenTuningStudio(selectedCar)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-950 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer font-bold"
+                  >
+                    <span>⚡ Dyno Tuning</span>
+                  </button>
+                )}
                 <button
                   onClick={() => onOpenInspector(selectedCar)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <Wrench className="w-3.5 h-3.5" />
-                  Blueprint Diagnostics
+                  Blueprint
                 </button>
               </div>
             </div>
+
 
             <div>
               <div className="flex items-center justify-between">

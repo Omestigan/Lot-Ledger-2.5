@@ -597,3 +597,84 @@ export function subscribeToAuctionVotes(dateStr: string, callback: (votes: Cloud
   );
 }
 
+// Multiplayer Racing & Race Track Center
+export interface CloudRaceInvite {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderDealership: string;
+  senderCar: {
+    title: string;
+    hp: number;
+    zeroToSixtySec: number;
+    quarterMileSec: number;
+    handlingScore: number;
+    carData: string;
+  };
+  targetUserId: string;
+  targetUserName?: string;
+  trackId: string;
+  trackName: string;
+  raceType: 'drag' | 'circuit' | 'sprint';
+  stakeType: 'friendly' | 'cash' | 'pink_slip';
+  cashStake: number;
+  status: 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled';
+  winnerId?: string;
+  winnerName?: string;
+  raceOutcomeSummary?: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export async function createRaceInviteInFirestore(invite: CloudRaceInvite) {
+  const inviteRef = doc(db, 'race_invites', invite.id);
+  try {
+    await setDoc(inviteRef, invite);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `race_invites/${invite.id}`);
+    return false;
+  }
+}
+
+export async function updateRaceInviteStatusInFirestore(
+  inviteId: string,
+  status: 'accepted' | 'declined' | 'completed' | 'cancelled',
+  extra?: { winnerId?: string; winnerName?: string; raceOutcomeSummary?: string }
+) {
+  const inviteRef = doc(db, 'race_invites', inviteId);
+  try {
+    await updateDoc(inviteRef, {
+      status,
+      ...extra,
+      updatedAt: Date.now(),
+    });
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `race_invites/${inviteId}`);
+    return false;
+  }
+}
+
+export function subscribeToLiveRaceInvites(userId: string, callback: (invites: CloudRaceInvite[]) => void) {
+  const invitesRef = collection(db, 'race_invites');
+  return onSnapshot(
+    query(invitesRef, limit(30)),
+    (snapshot) => {
+      const list: CloudRaceInvite[] = [];
+      snapshot.forEach((docSnap) => {
+        const item = docSnap.data() as CloudRaceInvite;
+        if (item.targetUserId === userId || item.senderId === userId || item.targetUserId === 'open_lobby') {
+          list.push(item);
+        }
+      });
+      list.sort((a, b) => b.createdAt - a.createdAt);
+      callback(list);
+    },
+    (error) => {
+      console.warn('Firestore race invites subscription notice:', error.message);
+    }
+  );
+}
+
+

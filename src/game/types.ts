@@ -81,7 +81,6 @@ export interface Car {
   idle: number;
   basis: number;
   bought?: number;
-  dead?: boolean;
   partGrade: 'new' | 'after' | 'used';
   origin?: { type: string; src: string; name: string };
   know: {
@@ -100,7 +99,37 @@ export interface Car {
     mech: string | null;
     full: boolean;
   };
+  // Custom Parts & Tuning Specs
+  tuning?: {
+    stage?: number;
+    parts?: string[]; // part IDs
+    hpBonus?: number;
+    torqueBonus?: number;
+    weightReductionKg?: number;
+    customWrap?: { name: string; hex: string };
+    camber?: number;
+    boostPsi?: number;
+    gearRatioBias?: 'short' | 'balanced' | 'tall';
+    suspensionStiffness?: number;
+    aeroWing?: boolean;
+    exhaustNote?: 'quiet' | 'sport' | 'straightpipe';
+  };
+  perfMetrics?: {
+    hp: number;
+    torque: number;
+    weightKg: number;
+    topSpeedKmh: number;
+    topSpeedMph: number;
+    zeroToSixtySec: number;
+    quarterMileSec: number;
+    fuelL100km: number;
+    fuelMpg: number;
+    handlingScore: number;
+    reliabilityScore: number;
+  };
 }
+
+
 
 export interface Listing {
   id: number;

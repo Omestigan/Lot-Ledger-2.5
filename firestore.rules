@@ -123,6 +123,20 @@ service cloud.firestore {
         && data.createdAt is number;
     }
 
+    function isValidRaceInvite(data) {
+      return data.keys().hasAll(['id', 'senderId', 'senderName', 'targetUserId', 'trackId', 'trackName', 'raceType', 'stakeType', 'status', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.senderName is string && data.senderName.size() <= 100
+        && data.targetUserId is string && data.targetUserId.size() <= 128
+        && data.trackId is string && data.trackId.size() <= 100
+        && data.trackName is string && data.trackName.size() <= 150
+        && data.raceType is string && (data.raceType == 'drag' || data.raceType == 'circuit' || data.raceType == 'sprint')
+        && data.stakeType is string && (data.stakeType == 'friendly' || data.stakeType == 'cash' || data.stakeType == 'pink_slip')
+        && data.status is string && (data.status == 'pending' || data.status == 'accepted' || data.status == 'declined' || data.status == 'completed' || data.status == 'cancelled')
+        && data.createdAt is number;
+    }
+
     // Match Collection Rules
     match /users/{userId} {
       allow get, list: if isSignedIn();
@@ -170,5 +184,17 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(voteId) && incoming().voterId == request.auth.uid && isValidAuctionVote(incoming());
       allow update, delete: if false;
     }
+
+    match /race_invites/{inviteId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(inviteId) && incoming().senderId == request.auth.uid && isValidRaceInvite(incoming());
+      allow update: if isSignedIn() && isValidId(inviteId) && isValidRaceInvite(incoming()) && (
+        existing().senderId == request.auth.uid ||
+        existing().targetUserId == request.auth.uid ||
+        existing().targetUserId == 'open_lobby'
+      );
+      allow delete: if isSignedIn() && isValidId(inviteId) && existing().senderId == request.auth.uid;
+    }
   }
 }
+

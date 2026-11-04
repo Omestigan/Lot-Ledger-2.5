@@ -3,8 +3,10 @@ import {
   Car, Users, ShoppingBag, ArrowLeftRight, Wrench, Briefcase, TrendingUp,
   Scale, Store, BookOpen, Volume2, VolumeX, Sun, Moon, Calendar, DollarSign,
   Clock, ShieldAlert, Sparkles, UserCheck, Globe, BarChart3, HelpCircle,
-  MoveLeft, MoveRight, SlidersHorizontal, RotateCcw, X, Check, Gavel
+  MoveLeft, MoveRight, SlidersHorizontal, RotateCcw, X, Check, Gavel,
+  Building2, Flag, Flame
 } from 'lucide-react';
+
 import { fmt } from '../game/valuation';
 import { GameState } from '../game/engine';
 import { auth } from '../lib/firebase';
@@ -12,10 +14,11 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { sound } from '../game/audio';
 
 const DEFAULT_TAB_ORDER = [
-  'welcome', 'worldmap', 'auction', 'rivals', 'b2b', 'metrics', 'market',
+  'welcome', 'empire', 'racing', 'worldmap', 'auction', 'rivals', 'b2b', 'metrics', 'market',
   'garage', 'connections', 'offers', 'trade', 'staff', 'invest',
   'legal', 'shop', 'ledger'
 ];
+
 
 interface NavbarProps {
   state: GameState;
@@ -86,6 +89,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const allTabsMap: Record<string, any> = {
     welcome: { id: 'welcome', label: 'Welcome', icon: Sparkles },
+    empire: { id: 'empire', label: 'Empire Map', badgeColor: 'bg-zinc-800 text-zinc-100 font-bold border border-zinc-700', count: `Lv.${state.empire?.level || 1}`, icon: Building2 },
+    racing: { id: 'racing', label: 'Race Center', badgeColor: 'bg-amber-950/80 text-amber-300 font-bold border border-amber-800/80', count: `${state.racingStats?.eloRating || 1200} ELO`, icon: Flag },
     worldmap: { id: 'worldmap', label: 'Global Cities', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: state.customLocation?.city || 'Globe', icon: Globe },
     auction: { id: 'auction', label: 'Live Auction', badgeColor: 'bg-zinc-800 text-zinc-100 font-bold border border-zinc-700', count: '3.0 LIVE', icon: Gavel },
     rivals: { id: 'rivals', label: 'AI Rivals', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: `${state.rivals?.length || 4} AI`, icon: Store },

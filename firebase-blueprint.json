@@ -125,6 +125,31 @@
         "createdAt": { "type": "number" }
       },
       "required": ["id", "voterId", "voterName", "voteAllowAi", "day", "createdAt"]
+    },
+    "RaceInvite": {
+      "title": "Multiplayer Race Invite",
+      "description": "Live race match invite and result between B2B network players",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "senderDealership": { "type": "string", "maxLength": 120 },
+        "targetUserId": { "type": "string", "maxLength": 128 },
+        "targetUserName": { "type": "string", "maxLength": 100 },
+        "trackId": { "type": "string", "maxLength": 100 },
+        "trackName": { "type": "string", "maxLength": 150 },
+        "raceType": { "type": "string", "enum": ["drag", "circuit", "sprint"] },
+        "stakeType": { "type": "string", "enum": ["friendly", "cash", "pink_slip"] },
+        "cashStake": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined", "completed", "cancelled"] },
+        "winnerId": { "type": "string", "maxLength": 128 },
+        "winnerName": { "type": "string", "maxLength": 100 },
+        "raceOutcomeSummary": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "senderId", "senderName", "targetUserId", "trackId", "trackName", "raceType", "stakeType", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -155,6 +180,11 @@
     "/auction_votes/{voteId}": {
       "schema": "AuctionVote",
       "description": "Daily player votes for AI rival participation"
+    },
+    "/race_invites/{inviteId}": {
+      "schema": "RaceInvite",
+      "description": "Live multiplayer drag and circuit race invites and results"
     }
   }
 }
+

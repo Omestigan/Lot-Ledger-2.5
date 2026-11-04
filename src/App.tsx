@@ -42,9 +42,15 @@ import { RivalDealership, INITIAL_RIVAL_DEALERSHIPS, tickRivalDealerships } from
 import { MandatoryGameStartModal } from './components/MandatoryGameStartModal';
 import { FirstTimeWelcomeModal } from './components/FirstTimeWelcomeModal';
 import { AuctionHouseView } from './components/AuctionHouseView';
+import { DealershipEmpireMapView } from './components/DealershipEmpireMapView';
+import { RaceTrackCenterView } from './components/RaceTrackCenterView';
+import { CarTuningModal } from './components/CarTuningModal';
+import { INITIAL_EMPIRE_BUILDINGS, AVAILABLE_BUILDING_CATALOG, getEmpireTotalBonuses } from './game/empire';
+import { calculateCarPerformanceMetrics } from './game/tuning';
 import { Sparkles } from 'lucide-react';
 
 export default function App() {
+  const [tuningCar, setTuningCar] = useState<Car | null>(null);
   const [selectedCheckoutPack, setSelectedCheckoutPack] = useState<PurchasePack | null>(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [state, setState] = useState<GameState>(() => {
@@ -316,15 +322,22 @@ export default function App() {
         addFlash(rivalTick.boughtListings[0].reason);
       }
 
-      // Record rival market movements in business ledger
-      if (rivalTick.marketNews.length > 0) {
-        rivalTick.marketNews.forEach((news) => {
-          next.log.unshift({ d: next.day, m: `[Market Intel] ${news}`, $: 0 });
-        });
+      // Empire Passive Daily Revenue Collection
+      if (next.empire) {
+        const empireBonuses = getEmpireTotalBonuses(next.empire);
+        if (empireBonuses.dailyRevenue > 0) {
+          next.cash += empireBonuses.dailyRevenue;
+          next.log.unshift({
+            d: next.day,
+            m: `[Empire Headquarters] Facility revenue collected: +${fmt(empireBonuses.dailyRevenue)}`,
+            $: empireBonuses.dailyRevenue,
+          });
+        }
       }
 
       return next;
     });
+
 
     addFlash('A new day begins. Market listings and rival dealerships have updated.');
   };
@@ -1087,6 +1100,145 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'empire' && (
+          <DealershipEmpireMapView
+            state={state}
+            onUpgradeBuilding={(buildingId, cost) => {
+              setState((prev) => {
+                const empire = prev.empire ? { ...prev.empire } : {
+                  level: 1,
+                  reputationXp: 100,
+                  gridWidth: 8,
+                  gridHeight: 6,
+                  buildings: [...INITIAL_EMPIRE_BUILDINGS],
+                  displayCars: [],
+                  totalVisitorsToday: 20,
+                  passiveDailyRevenue: 1500,
+                };
+                empire.buildings = empire.buildings.map((b) => {
+                  if (b.id === buildingId) {
+                    return {
+                      ...b,
+                      level: b.level + 1,
+                      upgradeCost: Math.round(b.upgradeCost * 1.6),
+                    };
+                  }
+                  return b;
+                });
+                const bonuses = getEmpireTotalBonuses(empire);
+                return {
+                  ...prev,
+                  cash: prev.cash - cost,
+                  rep: Math.min(100, prev.rep + 3),
+                  slots: 2 + bonuses.extraSlots,
+                  empire,
+                };
+              });
+            }}
+            onConstructBuilding={(typeId, gridX, gridY, cost) => {
+              setState((prev) => {
+                const empire = prev.empire ? { ...prev.empire } : {
+                  level: 1,
+                  reputationXp: 100,
+                  gridWidth: 8,
+                  gridHeight: 6,
+                  buildings: [...INITIAL_EMPIRE_BUILDINGS],
+                  displayCars: [],
+                  totalVisitorsToday: 20,
+                  passiveDailyRevenue: 1500,
+                };
+                const catalogItem = AVAILABLE_BUILDING_CATALOG.find((b) => b.typeId === typeId);
+                if (catalogItem) {
+                  empire.buildings.push({
+                    ...catalogItem,
+                    id: `bld_${typeId}_${Date.now()}`,
+                    gridX,
+                    gridY,
+                  });
+                }
+                const bonuses = getEmpireTotalBonuses(empire);
+                return {
+                  ...prev,
+                  cash: prev.cash - cost,
+                  rep: Math.min(100, prev.rep + 5),
+                  slots: 2 + bonuses.extraSlots,
+                  empire,
+                };
+              });
+            }}
+            onPlaceDisplayCar={(carUid, gridX, gridY) => {
+              setState((prev) => {
+                const empire = prev.empire ? { ...prev.empire } : {
+                  level: 1,
+                  reputationXp: 100,
+                  gridWidth: 8,
+                  gridHeight: 6,
+                  buildings: [...INITIAL_EMPIRE_BUILDINGS],
+                  displayCars: [],
+                  totalVisitorsToday: 20,
+                  passiveDailyRevenue: 1500,
+                };
+                empire.displayCars = (empire.displayCars || []).filter((c) => c.gridX !== gridX || c.gridY !== gridY);
+                empire.displayCars.push({ carUid, gridX, gridY });
+                return {
+                  ...prev,
+                  empire,
+                };
+              });
+            }}
+            onOpenTuningStudio={(car) => setTuningCar(car)}
+            onFlashNotification={addFlash}
+          />
+        )}
+
+        {activeTab === 'racing' && (
+          <RaceTrackCenterView
+            state={state}
+            onUpdateRacingStats={(result) => {
+              setState((prev) => {
+                const next = { ...prev };
+                next.cash += result.cashDelta;
+                const stats = next.racingStats ? { ...next.racingStats } : {
+                  wins: 0,
+                  losses: 0,
+                  winStreak: 0,
+                  pinkSlipsWon: 0,
+                  pinkSlipsLost: 0,
+                  totalEarnings: 0,
+                  eloRating: 1200,
+                };
+
+                if (result.won) {
+                  stats.wins += 1;
+                  stats.winStreak += 1;
+                  stats.totalEarnings += Math.max(0, result.cashDelta);
+                } else {
+                  stats.losses += 1;
+                  stats.winStreak = 0;
+                }
+                stats.eloRating = Math.max(800, stats.eloRating + result.eloChange);
+
+                if (result.pinkSlipLostCarUid) {
+                  next.cars = next.cars.filter((c) => c.uid !== result.pinkSlipLostCarUid);
+                  stats.pinkSlipsLost += 1;
+                  addFlash('Pink Slip loss: Forfeited vehicle title to victor!');
+                }
+                if (result.pinkSlipWonCar) {
+                  next.cars.push(result.pinkSlipWonCar);
+                  stats.pinkSlipsWon += 1;
+                  addFlash('Pink Slip victory: Seized opponent vehicle title!');
+                }
+
+                next.racingStats = stats;
+                return next;
+              });
+            }}
+            onOpenTuningStudio={(car) => setTuningCar(car)}
+            onFlashNotification={addFlash}
+            onOpenAccounts={() => setIsAccountsModalOpen(true)}
+          />
+        )}
+
         {activeTab === 'worldmap' && (
           <WorldMapView
             currentLocation={state.customLocation || PRESET_WORLD_CITIES[0]}
@@ -1094,6 +1246,7 @@ export default function App() {
             day={state.day}
           />
         )}
+
 
         {activeTab === 'auction' && (
           <AuctionHouseView
@@ -1250,6 +1403,7 @@ export default function App() {
             onScrap={handleScrap}
             onPartOut={handleScrap}
             onOpenInspector={setInspectingCar}
+            onOpenTuningStudio={(car) => setTuningCar(car)}
             slots={state.slots}
             region={currentRegion}
             activePerks={activePerks}
@@ -1257,6 +1411,7 @@ export default function App() {
             mechLevel={lv(state.skills, 'mech')}
           />
         )}
+
 
         {activeTab === 'offers' && (
           <OffersView
@@ -1582,6 +1737,27 @@ export default function App() {
         onClose={() => setIsAdminModalOpen(false)}
         onFlash={addFlash}
       />
+
+      {/* Performance Dyno & Tuning Studio Modal */}
+      {tuningCar && (
+        <CarTuningModal
+          car={tuningCar}
+          playerCash={state.cash}
+          isOpen={Boolean(tuningCar)}
+          onClose={() => setTuningCar(null)}
+          tuningDiscountPct={state.empire ? getEmpireTotalBonuses(state.empire).tuningDiscountPct : 0}
+          onApplyTuning={(carUid, updatedCar, totalCost) => {
+            setState((prev) => {
+              const next = { ...prev };
+              next.cash -= totalCost;
+              next.cars = next.cars.map((c) => (c.uid === carUid ? updatedCar : c));
+              return next;
+            });
+            addFlash(`Fitted custom performance tuning to ${updatedCar.adTitle}!`);
+          }}
+        />
+      )}
     </div>
   );
 }
+
