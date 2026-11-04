@@ -468,3 +468,132 @@ export async function loadGameFromCloudFirestore(userId: string, slotNumber: num
     return null;
   }
 }
+
+// In-Game Purchases & Microtransactions Sync
+export interface CloudPurchase {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  dealershipName?: string;
+  packId: string;
+  packTitle: string;
+  amountUSD: number;
+  rewardDetails: string;
+  billingName?: string;
+  billingAddress?: string;
+  paymentMethodType?: string;
+  status: 'completed' | 'refunded';
+  createdAt: number;
+}
+
+export async function recordPurchaseInFirestore(purchase: CloudPurchase) {
+  const purchaseRef = doc(db, 'purchases', purchase.id);
+  try {
+    await setDoc(purchaseRef, purchase);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `purchases/${purchase.id}`);
+    return false;
+  }
+}
+
+export function subscribeToPurchases(callback: (purchases: CloudPurchase[]) => void) {
+  const purchasesRef = collection(db, 'purchases');
+  return onSnapshot(
+    query(purchasesRef, limit(100)),
+    (snapshot) => {
+      const list: CloudPurchase[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push(docSnap.data() as CloudPurchase);
+      });
+      list.sort((a, b) => b.createdAt - a.createdAt);
+      callback(list);
+    },
+    (error) => {
+      console.warn('Firestore purchases subscription notice:', error.message);
+    }
+  );
+}
+
+// Live Auction House & Daily Voting Sync
+export interface CloudAuctionBid {
+  id: string;
+  auctionId: string;
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  amount: number;
+  carTitle: string;
+  isAiRival?: boolean;
+  timestamp: number;
+}
+
+export interface CloudAuctionVote {
+  id: string;
+  userId: string;
+  userName: string;
+  allowAiRivals: boolean;
+  dateStr: string;
+  timestamp: number;
+}
+
+export async function placeAuctionBidInFirestore(bid: CloudAuctionBid) {
+  const bidRef = doc(db, 'auction_bids', bid.id);
+  try {
+    await setDoc(bidRef, bid);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `auction_bids/${bid.id}`);
+    return false;
+  }
+}
+
+export function subscribeToAuctionBids(auctionId: string, callback: (bids: CloudAuctionBid[]) => void) {
+  const bidsRef = collection(db, 'auction_bids');
+  const q = query(bidsRef, where('auctionId', '==', auctionId), limit(100));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: CloudAuctionBid[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push(docSnap.data() as CloudAuctionBid);
+      });
+      list.sort((a, b) => b.timestamp - a.timestamp);
+      callback(list);
+    },
+    (error) => {
+      console.warn('Firestore auction bids subscription notice:', error.message);
+    }
+  );
+}
+
+export async function castAuctionVoteInFirestore(vote: CloudAuctionVote) {
+  const voteRef = doc(db, 'auction_votes', vote.id);
+  try {
+    await setDoc(voteRef, vote);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `auction_votes/${vote.id}`);
+    return false;
+  }
+}
+
+export function subscribeToAuctionVotes(dateStr: string, callback: (votes: CloudAuctionVote[]) => void) {
+  const votesRef = collection(db, 'auction_votes');
+  const q = query(votesRef, where('dateStr', '==', dateStr), limit(100));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: CloudAuctionVote[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push(docSnap.data() as CloudAuctionVote);
+      });
+      callback(list);
+    },
+    (error) => {
+      console.warn('Firestore auction votes subscription notice:', error.message);
+    }
+  );
+}
+

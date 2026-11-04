@@ -2,13 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   Car, Users, ShoppingBag, ArrowLeftRight, Wrench, Briefcase, TrendingUp,
   Scale, Store, BookOpen, Volume2, VolumeX, Sun, Moon, Calendar, DollarSign,
-  Clock, ShieldAlert, Sparkles, UserCheck, Globe, BarChart3, HelpCircle
+  Clock, ShieldAlert, Sparkles, UserCheck, Globe, BarChart3, HelpCircle,
+  MoveLeft, MoveRight, SlidersHorizontal, RotateCcw, X, Check, Gavel
 } from 'lucide-react';
 import { fmt } from '../game/valuation';
 import { GameState } from '../game/engine';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { sound } from '../game/audio';
+
+const DEFAULT_TAB_ORDER = [
+  'welcome', 'worldmap', 'auction', 'rivals', 'b2b', 'metrics', 'market',
+  'garage', 'connections', 'offers', 'trade', 'staff', 'invest',
+  'legal', 'shop', 'ledger'
+];
 
 interface NavbarProps {
   state: GameState;
@@ -44,6 +51,29 @@ export const Navbar: React.FC<NavbarProps> = ({
   netWorth,
 }) => {
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+  const [tabOrder, setTabOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('lot_ledger_tab_order');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const merged = [...parsed.filter((id) => DEFAULT_TAB_ORDER.includes(id))];
+          DEFAULT_TAB_ORDER.forEach((id) => {
+            if (!merged.includes(id)) merged.push(id);
+          });
+          return merged;
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_TAB_ORDER;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lot_ledger_tab_order', JSON.stringify(tabOrder));
+    } catch (e) {}
+  }, [tabOrder]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (usr) => {
@@ -54,29 +84,48 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const currencySym = state.customLocation?.currencySymbol || '$';
 
-  const tabs = [
-    { id: 'welcome', label: 'Welcome', icon: Sparkles },
-    { id: 'worldmap', label: 'Global Cities', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: state.customLocation?.city || 'Globe', icon: Globe },
-    { id: 'rivals', label: 'AI Rivals', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: `${state.rivals?.length || 4} AI`, icon: Store },
-    { id: 'b2b', label: 'B2B Network', badgeColor: 'bg-emerald-950/80 text-emerald-300 font-bold border border-emerald-800/80', count: 'LIVE', icon: Users },
-    { id: 'metrics', label: 'Metrics', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: 'RANK', icon: BarChart3 },
-    { id: 'market', label: 'Market', count: state.listings.length, icon: ShoppingBag },
-    { id: 'garage', label: 'Garage', count: `${state.cars.length}/${state.slots}`, icon: Car },
-    {
+  const allTabsMap: Record<string, any> = {
+    welcome: { id: 'welcome', label: 'Welcome', icon: Sparkles },
+    worldmap: { id: 'worldmap', label: 'Global Cities', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: state.customLocation?.city || 'Globe', icon: Globe },
+    auction: { id: 'auction', label: 'Live Auction', badgeColor: 'bg-zinc-800 text-zinc-100 font-bold border border-zinc-700', count: '3.0 LIVE', icon: Gavel },
+    rivals: { id: 'rivals', label: 'AI Rivals', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: `${state.rivals?.length || 4} AI`, icon: Store },
+    b2b: { id: 'b2b', label: 'B2B Network', badgeColor: 'bg-emerald-950/80 text-emerald-300 font-bold border border-emerald-800/80', count: 'LIVE', icon: Users },
+    metrics: { id: 'metrics', label: 'Metrics', badgeColor: 'bg-zinc-800 text-zinc-200 font-bold border border-zinc-700', count: 'RANK', icon: BarChart3 },
+    market: { id: 'market', label: 'Market', count: state.listings.length, icon: ShoppingBag },
+    garage: { id: 'garage', label: 'Garage', count: `${state.cars.length}/${state.slots}`, icon: Car },
+    connections: {
       id: 'connections',
       label: 'Connections',
       count: Object.values(state.connections.contacts).filter((c) => c.status === 'active').length,
       badgeColor: 'bg-zinc-800 text-zinc-200 border border-zinc-700',
       icon: Users,
     },
-    { id: 'offers', label: 'Offers', count: state.offers.length || '', icon: ArrowLeftRight },
-    { id: 'trade', label: 'Trade', count: state.transit.length || '', icon: ArrowLeftRight },
-    { id: 'staff', label: 'Staff', count: state.staff.length || '', icon: Briefcase },
-    { id: 'invest', label: 'Invest', icon: TrendingUp },
-    { id: 'legal', label: 'Legal', count: state.suits.filter((s) => s.stage !== 'closed').length || '', icon: Scale },
-    { id: 'shop', label: 'Shop', icon: Store },
-    { id: 'ledger', label: 'Ledger', icon: BookOpen },
-  ];
+    offers: { id: 'offers', label: 'Offers', count: state.offers.length || '', icon: ArrowLeftRight },
+    trade: { id: 'trade', label: 'Trade', count: state.transit.length || '', icon: ArrowLeftRight },
+    staff: { id: 'staff', label: 'Staff', count: state.staff.length || '', icon: Briefcase },
+    invest: { id: 'invest', label: 'Invest', icon: TrendingUp },
+    legal: { id: 'legal', label: 'Legal', count: state.suits.filter((s) => s.stage !== 'closed').length || '', icon: Scale },
+    shop: { id: 'shop', label: 'Shop', icon: Store },
+    ledger: { id: 'ledger', label: 'Ledger', icon: BookOpen },
+  };
+
+  const tabs = tabOrder.map((id) => allTabsMap[id]).filter(Boolean);
+
+  const moveTab = (index: number, direction: 'left' | 'right') => {
+    sound.playClick();
+    const newOrder = [...tabOrder];
+    const targetIdx = direction === 'left' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= newOrder.length) return;
+    const temp = newOrder[index];
+    newOrder[index] = newOrder[targetIdx];
+    newOrder[targetIdx] = temp;
+    setTabOrder(newOrder);
+  };
+
+  const resetTabOrder = () => {
+    sound.playClick();
+    setTabOrder(DEFAULT_TAB_ORDER);
+  };
 
   const dateStr = new Date(2026, 9, 22 + state.day).toLocaleDateString('en-CA', {
     weekday: 'short',
@@ -86,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   });
 
   return (
-    <header className="sticky top-0 z-40 bg-zinc-950/88 dark:bg-zinc-950/90 text-white border-b border-zinc-800/80 shadow-2xl backdrop-blur-xl transition-all">
+    <header className="sticky top-0 z-40 bg-zinc-950/92 dark:bg-zinc-950/95 text-white border-b border-zinc-800/80 shadow-2xl backdrop-blur-2xl transition-all">
       {/* Upper Status Ribbon */}
       <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs border-b border-zinc-800/60">
         {/* Brand / Logo - Sits flush on background with NO weird rectangle outline and NO highlighting */}
@@ -109,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Lot &amp; Ledger
                 </span>
                 <span className="text-[10px] font-mono tracking-normal text-zinc-400 font-semibold flex items-center gap-1">
-                  <span>v2.5 AI</span>
+                  <span>v3.0 AI</span>
                   <span className="text-[9px] font-extrabold text-amber-400 tracking-wider">BETA</span>
                 </span>
               </div>
@@ -295,6 +344,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           );
         })}
 
+        {/* Rearrange Tabs Button */}
+        <button
+          onClick={() => {
+            sound.playClick();
+            setIsReorderModalOpen(true);
+          }}
+          className="px-2.5 py-1.5 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1 shrink-0 transition-all cursor-pointer"
+          title="Rearrange Navigation Tab Order"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+          <span className="hidden sm:inline">Rearrange</span>
+        </button>
+
         {/* Floating Quick Consult Button */}
         <div className="ml-auto mr-1 shrink-0">
           <button
@@ -309,6 +371,85 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Tab Reorder Modal */}
+      {isReorderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-zinc-950/95 rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-zinc-800 text-white my-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-base text-white">Customize Navigation Tab Order</h3>
+              </div>
+              <button
+                onClick={() => setIsReorderModalOpen(false)}
+                className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400 font-mono">
+              Use the arrow buttons to move tabs left or right. Your custom tab layout persists automatically.
+            </p>
+
+            <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+              {tabs.map((tab, idx) => {
+                const Icon = tab.icon;
+                return (
+                  <div
+                    key={tab.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-zinc-400" />
+                      <span className="font-bold text-white">{tab.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => moveTab(idx, 'left')}
+                        disabled={idx === 0}
+                        className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 cursor-pointer"
+                        title="Move Left"
+                      >
+                        <MoveLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => moveTab(idx, 'right')}
+                        disabled={idx === tabs.length - 1}
+                        className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 cursor-pointer"
+                        title="Move Right"
+                      >
+                        <MoveRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-800 text-xs">
+              <button
+                onClick={resetTabOrder}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white font-mono flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Default</span>
+              </button>
+
+              <button
+                onClick={() => setIsReorderModalOpen(false)}
+                className="px-4 py-1.5 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Save Layout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
+

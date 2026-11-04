@@ -1019,12 +1019,14 @@ const COUNTRY_AUTO_REGULATIONS: Record<string, {
 // --- AI City Discovery Endpoint (Wikipedia.com + maps.google.com + Gemini 3.6 Flash) ---
 app.post('/api/ai/lookup-city', async (req, res) => {
   const startTime = Date.now();
-  const { cityName } = req.body;
+  const { cityName, countryName } = req.body;
   if (!cityName || typeof cityName !== 'string' || !cityName.trim()) {
     return res.status(400).json({ error: 'City name is required' });
   }
 
-  const query = cityName.trim();
+  const cleanCity = cityName.trim();
+  const cleanCountry = countryName && typeof countryName === 'string' ? countryName.trim() : '';
+  const query = cleanCountry ? `${cleanCity}, ${cleanCountry}` : cleanCity;
   const normKey = query.toLowerCase().replace(/[^a-z0-9]/g, '');
 
   // 1. Instant Cache Hit (< 10ms response)

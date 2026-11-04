@@ -83,6 +83,46 @@ service cloud.firestore {
         && (!('dealershipName' in data) || (data.dealershipName is string && data.dealershipName.size() <= 120));
     }
 
+    function isValidPurchase(data) {
+      return data.keys().hasAll(['id', 'userId', 'userName', 'packId', 'packTitle', 'amountUSD', 'status', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.userName is string && data.userName.size() <= 100
+        && data.packId is string && data.packId.size() <= 100
+        && data.packTitle is string && data.packTitle.size() <= 150
+        && data.amountUSD is number
+        && data.status is string && (data.status == 'completed' || data.status == 'refunded')
+        && data.createdAt is number
+        && (!('userEmail' in data) || (data.userEmail is string && data.userEmail.size() <= 256))
+        && (!('dealershipName' in data) || (data.dealershipName is string && data.dealershipName.size() <= 120))
+        && (!('rewardDetails' in data) || (data.rewardDetails is string && data.rewardDetails.size() <= 300))
+        && (!('billingName' in data) || (data.billingName is string && data.billingName.size() <= 100))
+        && (!('billingAddress' in data) || (data.billingAddress is string && data.billingAddress.size() <= 200))
+        && (!('paymentMethodType' in data) || (data.paymentMethodType is string && data.paymentMethodType.size() <= 50));
+    }
+
+    function isValidAuctionBid(data) {
+      return data.keys().hasAll(['id', 'auctionId', 'bidderId', 'bidderName', 'bidAmount', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.auctionId is string && data.auctionId.size() <= 128
+        && data.bidderId is string && data.bidderId.size() <= 128
+        && data.bidderName is string && data.bidderName.size() <= 100
+        && data.bidAmount is number && data.bidAmount > 0
+        && data.createdAt is number
+        && (!('dealershipName' in data) || (data.dealershipName is string && data.dealershipName.size() <= 120))
+        && (!('isAi' in data) || data.isAi is bool);
+    }
+
+    function isValidAuctionVote(data) {
+      return data.keys().hasAll(['id', 'voterId', 'voterName', 'voteAllowAi', 'day', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.voterId is string && data.voterId.size() <= 128
+        && data.voterName is string && data.voterName.size() <= 100
+        && data.voteAllowAi is bool
+        && data.day is number
+        && data.createdAt is number;
+    }
+
     // Match Collection Rules
     match /users/{userId} {
       allow get, list: if isSignedIn();
@@ -110,6 +150,24 @@ service cloud.firestore {
     match /chat_messages/{messageId} {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && isValidId(messageId) && incoming().senderId == request.auth.uid && isValidLiveChat(incoming());
+      allow update, delete: if false;
+    }
+
+    match /purchases/{purchaseId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(purchaseId) && incoming().userId == request.auth.uid && isValidPurchase(incoming());
+      allow update, delete: if false;
+    }
+
+    match /auction_bids/{bidId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(bidId) && incoming().bidderId == request.auth.uid && isValidAuctionBid(incoming());
+      allow update, delete: if false;
+    }
+
+    match /auction_votes/{voteId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(voteId) && incoming().voterId == request.auth.uid && isValidAuctionVote(incoming());
       allow update, delete: if false;
     }
   }

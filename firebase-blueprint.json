@@ -73,6 +73,58 @@
         "createdAt": { "type": "number" }
       },
       "required": ["id", "senderId", "senderName", "message", "createdAt"]
+    },
+    "Purchase": {
+      "title": "Microtransaction Purchase",
+      "description": "Record of in-game purchases and capital boosts saved to Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userEmail": { "type": "string", "maxLength": 256 },
+        "dealershipName": { "type": "string", "maxLength": 120 },
+        "packId": { "type": "string", "maxLength": 100 },
+        "packTitle": { "type": "string", "maxLength": 150 },
+        "amountUSD": { "type": "number" },
+        "rewardDetails": { "type": "string", "maxLength": 300 },
+        "billingName": { "type": "string", "maxLength": 100 },
+        "billingAddress": { "type": "string", "maxLength": 200 },
+        "paymentMethodType": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["completed", "refunded"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "userId", "userName", "packId", "packTitle", "amountUSD", "status", "createdAt"]
+    },
+    "AuctionBid": {
+      "title": "Live Auction Bid",
+      "description": "Live auction bid placed by a player or AI rival",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "auctionId": { "type": "string", "maxLength": 128 },
+        "bidderId": { "type": "string", "maxLength": 128 },
+        "bidderName": { "type": "string", "maxLength": 100 },
+        "dealershipName": { "type": "string", "maxLength": 120 },
+        "bidAmount": { "type": "number" },
+        "isAi": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "auctionId", "bidderId", "bidderName", "bidAmount", "createdAt"]
+    },
+    "AuctionVote": {
+      "title": "Daily AI Rival Vote",
+      "description": "Player vote on whether AI rivals participate in daily live auction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "voterId": { "type": "string", "maxLength": 128 },
+        "voterName": { "type": "string", "maxLength": 100 },
+        "voteAllowAi": { "type": "boolean" },
+        "day": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "voterId", "voterName", "voteAllowAi", "day", "createdAt"]
     }
   },
   "firestore": {
@@ -91,6 +143,18 @@
     "/chat_messages/{messageId}": {
       "schema": "LiveChat",
       "description": "Live global dealership chat messages"
+    },
+    "/purchases/{purchaseId}": {
+      "schema": "Purchase",
+      "description": "In-game purchase transaction records"
+    },
+    "/auction_bids/{bidId}": {
+      "schema": "AuctionBid",
+      "description": "Live multiplayer auction bids"
+    },
+    "/auction_votes/{voteId}": {
+      "schema": "AuctionVote",
+      "description": "Daily player votes for AI rival participation"
     }
   }
 }

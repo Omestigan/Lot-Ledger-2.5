@@ -40,6 +40,7 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
 
   // Gemini AI City Lookup State
   const [customCityInput, setCustomCityInput] = useState('');
+  const [customCountryInput, setCustomCountryInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedCity, setAnalyzedCity] = useState<WorldLocation | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -87,6 +88,7 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
   const handleLookupCustomCity = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const q = customCityInput.trim();
+    const c = customCountryInput.trim();
     if (!q || isAnalyzing) return;
 
     setIsAnalyzing(true);
@@ -98,7 +100,7 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
       const res = await fetch('/api/ai/lookup-city', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cityName: q }),
+        body: JSON.stringify({ cityName: q, countryName: c }),
       });
       const data = await res.json();
       if (res.ok && data.location) {
@@ -218,32 +220,46 @@ export const CityDirectoryView: React.FC<CityDirectoryViewProps> = ({
           </div>
         </div>
 
-        <form onSubmit={handleLookupCustomCity} className="flex flex-col sm:flex-row gap-2.5">
-          <div className="relative flex-1">
+        <form onSubmit={handleLookupCustomCity} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+          <div className="relative sm:col-span-6">
             <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
-              placeholder="Enter any city on Earth (e.g. Reykjavik, Nairobi, Munich, Cairo, Auckland, Osaka, Baku, Bogota)..."
+              placeholder="City Name (e.g. Springfield, Paris, Munich, Nairobi, Tokyo)..."
               value={customCityInput}
               onChange={(e) => setCustomCityInput(e.target.value)}
               disabled={isAnalyzing}
               className="w-full pl-10 pr-4 py-3 liquid-glass-input rounded-2xl text-xs font-mono placeholder-zinc-400 text-zinc-900 dark:text-white"
+              required
             />
           </div>
+
+          <div className="relative sm:col-span-4">
+            <Globe2 className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Country / State (e.g. Oregon USA, France, Germany, Kenya, Japan)..."
+              value={customCountryInput}
+              onChange={(e) => setCustomCountryInput(e.target.value)}
+              disabled={isAnalyzing}
+              className="w-full pl-10 pr-4 py-3 liquid-glass-input rounded-2xl text-xs font-mono placeholder-zinc-400 text-zinc-900 dark:text-white"
+            />
+          </div>
+
           <button
             type="submit"
             disabled={!customCityInput.trim() || isAnalyzing}
-            className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-950 font-mono text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md active:scale-95"
+            className="sm:col-span-2 px-4 py-3 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-950 font-mono text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md active:scale-95"
           >
             {isAnalyzing ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-                <span>SOURCING TELEMETRY...</span>
+                <span>SEARCH...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>DISCOVER CITY WITH AI</span>
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>DISCOVER</span>
               </>
             )}
           </button>

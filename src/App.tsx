@@ -25,6 +25,8 @@ import { StaffView } from './components/StaffView';
 import { InvestView } from './components/InvestView';
 import { LegalView } from './components/LegalView';
 import { ShopView } from './components/ShopView';
+import { InGameCheckoutModal, PurchasePack } from './components/InGameCheckoutModal';
+import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { LedgerView } from './components/LedgerView';
 import { AccountsModal } from './components/AccountsModal';
 import { CharacterCreatorModal } from './components/CharacterCreatorModal';
@@ -39,9 +41,12 @@ import { WorldLocation, PRESET_WORLD_CITIES } from './game/locations';
 import { RivalDealership, INITIAL_RIVAL_DEALERSHIPS, tickRivalDealerships } from './game/rivals';
 import { MandatoryGameStartModal } from './components/MandatoryGameStartModal';
 import { FirstTimeWelcomeModal } from './components/FirstTimeWelcomeModal';
+import { AuctionHouseView } from './components/AuctionHouseView';
 import { Sparkles } from 'lucide-react';
 
 export default function App() {
+  const [selectedCheckoutPack, setSelectedCheckoutPack] = useState<PurchasePack | null>(null);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [state, setState] = useState<GameState>(() => {
     // Attempt to load from active account slot 1 or autosave
     try {
@@ -85,6 +90,30 @@ export default function App() {
     }
   });
   const [flashMessages, setFlashMessages] = useState<string[]>([]);
+
+  const handleApplyReward = useCallback((pack: PurchasePack) => {
+    setState((prev) => {
+      const next = { ...prev };
+      if (pack.cashBonus) {
+        next.cash += pack.cashBonus;
+      }
+      if (pack.extraSlots) {
+        next.slots = Math.min(10, next.slots + pack.extraSlots);
+      }
+      if (pack.id === 'pack_booster') {
+        next.ins = true;
+      }
+      if (pack.id === 'pack_mega') {
+        next.lic = true;
+      }
+      next.log.unshift({
+        d: next.day,
+        m: `In-game purchase approved: ${pack.title} ($${pack.priceUSD})`,
+        $: pack.cashBonus || 0,
+      });
+      return next;
+    });
+  }, []);
 
   // Apply dark mode class to root HTML & persist
   useEffect(() => {
@@ -1066,6 +1095,21 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'auction' && (
+          <AuctionHouseView
+            state={state}
+            onBuyCar={(boughtCar, price) => {
+              setState((prev) => ({
+                ...prev,
+                cash: prev.cash - price,
+                cars: [...prev.cars, boughtCar],
+              }));
+              addFlash(`Acquired ${boughtCar.adTitle} from auction block!`);
+            }}
+            onFlashNotification={addFlash}
+          />
+        )}
+
         {activeTab === 'rivals' && (
           <RivalDealershipsView
             rivals={state.rivals || INITIAL_RIVAL_DEALERSHIPS}
@@ -1410,6 +1454,12 @@ export default function App() {
             partners={state.partners}
             onPartner={(key) => addFlash('Partner agreement signed.')}
             netWorth={currentNetWorth}
+            onOpenCheckout={(pack) => setSelectedCheckoutPack(pack)}
+            onEarnCash={(amount) => {
+              setState((prev) => ({ ...prev, cash: prev.cash + amount }));
+            }}
+            onFlash={addFlash}
+            onOpenAdmin={() => setIsAdminModalOpen(true)}
           />
         )}
 
@@ -1515,6 +1565,22 @@ export default function App() {
         location={state.customLocation || PRESET_WORLD_CITIES[0]}
         rivals={state.rivals || INITIAL_RIVAL_DEALERSHIPS}
         region={currentRegion}
+      />
+
+      {/* In-Game Microtransaction & Admin Modals */}
+      <InGameCheckoutModal
+        isOpen={Boolean(selectedCheckoutPack)}
+        onClose={() => setSelectedCheckoutPack(null)}
+        selectedPack={selectedCheckoutPack}
+        dealershipName={state.player?.name ? `${state.player.name}'s Auto Lot` : 'Apex Motors'}
+        onApplyReward={handleApplyReward}
+        onFlash={addFlash}
+      />
+
+      <AdminDashboardModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onFlash={addFlash}
       />
     </div>
   );
