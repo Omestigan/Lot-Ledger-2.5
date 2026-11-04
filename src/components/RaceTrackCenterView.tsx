@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Car } from '../game/types';
 import { GameState } from '../game/engine';
+import { CAT } from '../game/data';
 import { fmt } from '../game/valuation';
 import { sound } from '../game/audio';
 import {
@@ -205,7 +206,78 @@ export const RaceTrackCenterView: React.FC<RaceTrackCenterViewProps> = ({
         if (stakeType === 'cash') {
           cashDelta = playerWon ? cashStakeInput : -cashStakeInput;
         } else if (stakeType === 'pink_slip') {
-          if (!playerWon) {
+          if (playerWon) {
+            // Generate the opponent's vehicle title won in pink slip battle
+            const randomCid = Math.floor(Math.random() * 8) + 1; // High performance catalog cars
+            const catEntry = CAT[randomCid] || CAT[0];
+            pinkSlipWonCar = {
+              uid: Date.now() + Math.floor(Math.random() * 1000),
+              cid: randomCid,
+              trim: 2,
+              color: ['Obsidian Black', '#18181b'],
+              vin: `PINK_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+              owners: 2,
+              use: 'personal',
+              km: Math.floor(12000 + Math.random() * 28000),
+              shown: Math.floor(12000 + Math.random() * 28000),
+              rolled: false,
+              tr: catEntry.tr,
+              eng: catEntry.eng[0] || 'V8 Twin Turbo',
+              q: 4,
+              issues: [],
+              rust: 0,
+              dents: 0,
+              repaint: false,
+              gaps: false,
+              interior: 1,
+              water: false,
+              lien: 0,
+              lienPaid: true,
+              tread: 95,
+              modded: true,
+              recall: false,
+              receipts: 3,
+              masked: false,
+              detail: true,
+              regd: true,
+              reg: 'valid',
+              idle: 0,
+              basis: Math.round(catEntry.base * 1.3),
+              bought: state.day,
+              partGrade: 'new',
+              winter: false,
+              cloned: false,
+              latent: [],
+              job: null,
+              sale: null,
+              adTitle: `🏆 ${catEntry.year} ${catEntry.make} ${catEntry.model} (Pink Slip Trophy)`,
+              title: 'clean',
+              know: {
+                issues: {},
+                rust: 0,
+                dents: 0,
+                interior: 1,
+                tires: { tread: 95, winter: false },
+                accident: false,
+                water: false,
+                odo: true,
+                odoSus: false,
+                hist: { title: 'clean' },
+                ppi: true,
+                said: [],
+                mech: null,
+                full: true,
+              },
+              tuning: {
+                stage: 2,
+                parts: ['ecu_stage2', 'fi_cold_air_intake', 'exh_catback'],
+                boostPsi: 1.4,
+                gearRatioBias: 'short',
+                suspensionStiffness: 8,
+                totalInvested: 5200,
+              },
+            };
+          } else {
             pinkSlipLostUid = selectedCar.uid;
           }
         }

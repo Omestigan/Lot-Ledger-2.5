@@ -101,8 +101,24 @@ export async function testFirestoreConnection() {
 
 testFirestoreConnection();
 
-// Check redirect result on initialization for external browser redirect flows
+// Auto-initialize auth session so real-time listeners and B2B rules work 100% out of the box
+export async function ensureAuthSession(): Promise<FirebaseUser | null> {
+  if (auth.currentUser) return auth.currentUser;
+  try {
+    const cred = await signInAnonymously(auth);
+    if (cred?.user) {
+      await syncUserProfileToFirestore(cred.user);
+    }
+    return cred.user;
+  } catch (err) {
+    console.warn('Auto anonymous session notice:', err);
+    return null;
+  }
+}
+
+// Ensure active session on load
 if (typeof window !== 'undefined') {
+  ensureAuthSession();
   getRedirectResult(auth)
     .then((result) => {
       if (result?.user) {

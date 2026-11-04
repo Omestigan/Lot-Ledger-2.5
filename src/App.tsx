@@ -47,7 +47,7 @@ import { RaceTrackCenterView } from './components/RaceTrackCenterView';
 import { CarTuningModal } from './components/CarTuningModal';
 import { INITIAL_EMPIRE_BUILDINGS, AVAILABLE_BUILDING_CATALOG, getEmpireTotalBonuses } from './game/empire';
 import { calculateCarPerformanceMetrics } from './game/tuning';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   const [tuningCar, setTuningCar] = useState<Car | null>(null);
@@ -1789,6 +1789,50 @@ export default function App() {
             addFlash(`Fitted custom performance tuning to ${updatedCar.adTitle}! Invested basis updated to ${fmt(updatedCar.basis)}.`);
           }}
         />
+      )}
+
+      {/* Anti-Cheat Regulatory Audit Termination Modal ($800,000 Cash Ceiling Guard) */}
+      {state.cash > 800000 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl">
+          <div className="p-8 rounded-3xl bg-zinc-950 border-2 border-rose-500/80 shadow-2xl max-w-lg w-full text-center space-y-6 text-white font-sans">
+            <div className="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
+              <ShieldAlert className="w-8 h-8 text-rose-500 animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 text-[11px] font-mono font-bold uppercase bg-rose-950 text-rose-300 border border-rose-800 rounded-full">
+                SECURITY REGULATORY AUDIT FAILURE
+              </span>
+              <h2 className="text-xl font-black font-display tracking-tight text-white mt-1">
+                Anti-Cheat Protection Tripped
+              </h2>
+              <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                Liquid cash reserves reached <strong className="text-rose-400 font-bold">{fmt(state.cash)}</strong>, exceeding the <strong className="text-white font-bold">$800,000</strong> regulatory ceiling. This venture has been terminated to enforce competitive economy integrity.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400 text-left space-y-1">
+              <div className="flex justify-between">
+                <span>System Protocol:</span>
+                <span className="text-rose-400 font-bold">ANTI_CHEAT_CEILING_800K</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Status:</span>
+                <span className="text-rose-400 font-bold">GAME TERMINATED</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                handleStartNewGame(state.region, state.mode, state.player, state.customLocation);
+              }}
+              className="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-mono font-black text-sm transition-all shadow-xl cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span>Reset &amp; Start Clean Venture</span>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
