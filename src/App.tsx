@@ -924,11 +924,16 @@ export default function App() {
 
   // B2B Wholesale Handlers
   const handleBuyCarFromB2B = (car: Car, cost: number, sellerName: string) => {
+    if (cost <= 0 || !Number.isFinite(cost) || state.cash < cost) {
+      addFlash('Transaction denied: Insufficient cash or invalid amount.');
+      return;
+    }
     if (state.cars.length >= state.slots) {
       addFlash('No free garage spot! Rent another spot in the Shop or sell a car.');
       return;
     }
     setState((prev) => {
+      if (prev.cash < cost) return prev;
       const next = { ...prev };
       next.cash -= cost;
       car.basis = cost;
@@ -949,11 +954,12 @@ export default function App() {
 
   // Stock Market
   const handleBuyStock = (symbol: string, amount: number) => {
-    if (state.cash < amount + 5) {
+    if (amount <= 0 || !Number.isFinite(amount) || state.cash < amount + 5) {
       addFlash(`Need ${fmt(amount + 5)} (including $5 trade commission).`);
       return;
     }
     setState((prev) => {
+      if (prev.cash < amount + 5) return prev;
       const next = { ...prev };
       const prices = next.mk[symbol];
       const p = prices ? prices[prices.length - 1] : 25;
@@ -969,6 +975,7 @@ export default function App() {
   };
 
   const handleSellStock = (symbol: string, amount: number, all = false) => {
+    if (amount <= 0 || !Number.isFinite(amount)) return;
     setState((prev) => {
       const next = { ...prev };
       const pos = next.hold[symbol];
@@ -977,7 +984,7 @@ export default function App() {
       const p = prices ? prices[prices.length - 1] : 25;
       const totalVal = pos.u * p;
       const sellVal = all ? totalVal : Math.min(totalVal, amount);
-      if (sellVal <= 0) return prev;
+      if (sellVal <= 0 || !Number.isFinite(sellVal)) return prev;
 
       const frac = (sellVal / p) / pos.u;
       pos.cost -= pos.cost * frac;
@@ -1583,6 +1590,13 @@ export default function App() {
             debt={state.debt}
             cash={state.cash}
             onBorrowLoan={(amt) => {
+              if (amt <= 0 || !Number.isFinite(amt)) return;
+              const loanLimit =
+                state.credit >= 760 ? 10000 : state.credit >= 700 ? 5000 : state.credit >= 650 ? 2500 : state.credit >= 625 ? 1000 : state.credit >= 610 ? 500 : 100;
+              if (state.debt + amt > loanLimit) {
+                addFlash('Loan denied: Reached commercial borrowing limit for your credit score.');
+                return;
+              }
               setState((prev) => ({
                 ...prev,
                 cash: prev.cash + amt,
@@ -1592,11 +1606,12 @@ export default function App() {
             }}
             onRepayLoan={() => {
               setState((prev) => {
+                if (prev.debt <= 0 || prev.cash <= 0) return prev;
                 const repayAmt = Math.min(prev.cash, prev.debt);
                 return {
                   ...prev,
-                  cash: prev.cash - repayAmt,
-                  debt: prev.debt - repayAmt,
+                  cash: Math.max(0, prev.cash - repayAmt),
+                  debt: Math.max(0, prev.debt - repayAmt),
                 };
               });
               addFlash('Repaid debt.');
@@ -1606,7 +1621,7 @@ export default function App() {
               if (state.cash < 3000) return;
               setState((prev) => ({
                 ...prev,
-                cash: prev.cash - 3000,
+                cash: Math.max(0, prev.cash - 3000),
                 lic: true,
               }));
               addFlash('Licensed as certified automotive dealer!');
@@ -1616,7 +1631,10 @@ export default function App() {
             netWorth={currentNetWorth}
             onOpenCheckout={(pack) => setSelectedCheckoutPack(pack)}
             onEarnCash={(amount) => {
-              setState((prev) => ({ ...prev, cash: prev.cash + amount }));
+              const safeAmt = Math.min(500, Math.max(0, amount));
+              if (safeAmt > 0) {
+                setState((prev) => ({ ...prev, cash: prev.cash + safeAmt }));
+              }
             }}
             onFlash={addFlash}
             onOpenAdmin={() => setIsAdminModalOpen(true)}
