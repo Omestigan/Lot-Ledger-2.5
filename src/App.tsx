@@ -97,10 +97,43 @@ export default function App() {
   });
   const [flashMessages, setFlashMessages] = useState<string[]>([]);
 
+  // Anti-Cheat & Income Rate Limiting Engine ($4,000/min velocity cap & passive collection limits)
+  const earningsHistoryRef = React.useRef<{ timestamp: number; amount: number; source: string }[]>([]);
+  const lastEmpireCollectionTimeRef = React.useRef<number>(0);
+  const [antiCheatViolation, setAntiCheatViolation] = useState<{
+    type: 'CEILING_800K' | 'VELOCITY_4K_PER_MIN' | 'PASSIVE_EXPLOIT';
+    message: string;
+    amount?: number;
+  } | null>(null);
+
+  const checkAndRecordIncome = useCallback((amount: number, source: string): boolean => {
+    if (amount <= 0 || !Number.isFinite(amount)) return true;
+
+    const now = Date.now();
+    // Filter out earnings older than 60,000 ms (1 minute)
+    earningsHistoryRef.current = earningsHistoryRef.current.filter((e) => now - e.timestamp <= 60000);
+
+    const earnedLastMinute = earningsHistoryRef.current.reduce((sum, e) => sum + e.amount, 0);
+    const totalWithNew = earnedLastMinute + amount;
+
+    if (totalWithNew > 4000) {
+      setAntiCheatViolation({
+        type: 'VELOCITY_4K_PER_MIN',
+        message: `Income velocity reached ${fmt(totalWithNew)}/min over the last 60 seconds (Source: ${source}), exceeding the $4,000 per minute anti-cheat threshold.`,
+        amount: totalWithNew,
+      });
+      return false;
+    }
+
+    earningsHistoryRef.current.push({ timestamp: now, amount, source });
+    return true;
+  }, []);
+
   const handleApplyReward = useCallback((pack: PurchasePack) => {
     setState((prev) => {
       const next = { ...prev };
       if (pack.cashBonus) {
+        if (!checkAndRecordIncome(pack.cashBonus, `Store Pack: ${pack.title}`)) return prev;
         next.cash += pack.cashBonus;
       }
       if (pack.extraSlots) {
@@ -150,6 +183,17 @@ export default function App() {
       setActiveCurrency(state.customLocation.currencySymbol, state.customLocation.currencyMultiplier || 1.0);
     }
   }, [state.customLocation]);
+
+  // Continuous Anti-Cheat Monitor: Liquid cash $800,000 ceiling audit
+  useEffect(() => {
+    if (state.cash > 800000 && !antiCheatViolation) {
+      setAntiCheatViolation({
+        type: 'CEILING_800K',
+        message: `Liquid cash reserves reached ${fmt(state.cash)}, exceeding the $800,000 regulatory ceiling.`,
+        amount: state.cash,
+      });
+    }
+  }, [state.cash, antiCheatViolation]);
 
   // Flash helper
   const addFlash = useCallback((msg: string) => {
@@ -551,6 +595,7 @@ export default function App() {
   };
 
   const handleSellCarToRival = (rival: RivalDealership, car: Car, price: number) => {
+    if (price > 0 && !checkAndRecordIncome(price, `Rival Dealer Sale (${rival.name})`)) return;
     setState((prev) => {
       const next = { ...prev };
       next.cash += price;
@@ -842,6 +887,7 @@ export default function App() {
 
   const handleScrap = (car: Car) => {
     const price = scrapV(car, activePerks);
+    if (price > 0 && !checkAndRecordIncome(price, 'Scrap Yard Sale')) return;
     setState((prev) => {
       const next = { ...prev };
       next.cash += price;
@@ -866,6 +912,8 @@ export default function App() {
       if (!car) return prev;
 
       const price = offer.amt;
+      if (price > 0 && !checkAndRecordIncome(price, 'Private Car Sale')) return prev;
+
       const profit = price - car.basis;
       next.cash += price;
       next.stats.flips++;
@@ -888,6 +936,7 @@ export default function App() {
   };
 
   const handleCounterOffer = (offerId: number, counterAmt: number) => {
+    if (counterAmt <= 0 || !Number.isFinite(counterAmt)) return;
     setState((prev) => {
       const next = { ...prev };
       const offer = next.offers.find((o) => o.id === offerId);
@@ -908,6 +957,8 @@ export default function App() {
       const myCar = next.cars.find((c) => c.uid === offer.uid) || next.cars[0];
       if (!myCar) return prev;
       const theirCar = offer.l.car;
+
+      if (offer.cash > 0 && !checkAndRecordIncome(offer.cash, 'Vehicle Swap Cash')) return prev;
 
       next.cash += offer.cash;
       theirCar.basis = Math.max(0, myCar.basis - offer.cash);
@@ -991,9 +1042,12 @@ export default function App() {
       pos.u -= sellVal / p;
       if (all || pos.u < 0.001) delete next.hold[symbol];
 
-      next.cash += sellVal - 5;
-      next.log.unshift({ d: next.day, m: `Sold ${symbol} proceeds`, $: sellVal - 5 });
-      addFlash(`Sold ${fmt(sellVal)} of ${symbol}. Net proceeds: ${fmt(sellVal - 5)}.`);
+      const netProceeds = sellVal - 5;
+      if (netProceeds > 0 && !checkAndRecordIncome(netProceeds, `Stock Sale (${symbol})`)) return prev;
+
+      next.cash += netProceeds;
+      next.log.unshift({ d: next.day, m: `Sold ${symbol} proceeds`, $: netProceeds });
+      addFlash(`Sold ${fmt(sellVal)} of ${symbol}. Net proceeds: ${fmt(netProceeds)}.`);
       return next;
     });
   };
@@ -1207,6 +1261,7 @@ export default function App() {
           <RaceTrackCenterView
             state={state}
             onUpdateRacingStats={(result) => {
+              if (result.cashDelta > 0 && !checkAndRecordIncome(result.cashDelta, 'Race Track Wager Victory')) return;
               setState((prev) => {
                 const next = { ...prev };
                 next.cash += result.cashDelta;
@@ -1791,8 +1846,8 @@ export default function App() {
         />
       )}
 
-      {/* Anti-Cheat Regulatory Audit Termination Modal ($800,000 Cash Ceiling Guard) */}
-      {state.cash > 800000 && (
+      {/* Anti-Cheat Regulatory Audit Termination Modal ($800,000 Cash Ceiling Guard & $4,000/min Velocity Cap) */}
+      {(antiCheatViolation || state.cash > 800000) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl">
           <div className="p-8 rounded-3xl bg-zinc-950 border-2 border-rose-500/80 shadow-2xl max-w-lg w-full text-center space-y-6 text-white font-sans">
             <div className="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
@@ -1807,14 +1862,18 @@ export default function App() {
                 Anti-Cheat Protection Tripped
               </h2>
               <p className="text-xs text-zinc-400 font-mono leading-relaxed">
-                Liquid cash reserves reached <strong className="text-rose-400 font-bold">{fmt(state.cash)}</strong>, exceeding the <strong className="text-white font-bold">$800,000</strong> regulatory ceiling. This venture has been terminated to enforce competitive economy integrity.
+                {antiCheatViolation?.message || (
+                  <>Liquid cash reserves reached <strong className="text-rose-400 font-bold">{fmt(state.cash)}</strong>, exceeding the <strong className="text-white font-bold">$800,000</strong> regulatory ceiling. This venture has been terminated to enforce competitive economy integrity.</>
+                )}
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400 text-left space-y-1">
               <div className="flex justify-between">
                 <span>System Protocol:</span>
-                <span className="text-rose-400 font-bold">ANTI_CHEAT_CEILING_800K</span>
+                <span className="text-rose-400 font-bold">
+                  {antiCheatViolation?.type || 'ANTI_CHEAT_CEILING_800K'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Status:</span>
@@ -1825,6 +1884,7 @@ export default function App() {
             <button
               onClick={() => {
                 sound.playClick();
+                setAntiCheatViolation(null);
                 handleStartNewGame(state.region, state.mode, state.player, state.customLocation);
               }}
               className="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-mono font-black text-sm transition-all shadow-xl cursor-pointer active:scale-95 flex items-center justify-center gap-2"

@@ -170,15 +170,18 @@ export const AVAILABLE_BUILDING_CATALOG: Omit<DealershipBuilding, 'id' | 'gridX'
 export function getEmpireTotalBonuses(empire: DealershipEmpireState) {
   let extraSlots = 0;
   let totalRep = 0;
-  let dailyRevenue = 0;
+  let rawRevenue = 0;
   let tuningDiscount = 0;
 
   empire.buildings.forEach((b) => {
     extraSlots += b.slotCapacityBonus * b.level;
     totalRep += b.repBonus * b.level;
-    dailyRevenue += b.revenuePerDay * b.level;
+    rawRevenue += b.revenuePerDay * b.level;
     tuningDiscount = Math.min(40, tuningDiscount + b.tuningDiscountPct * (b.level * 0.5));
   });
+
+  // Cap passive empire daily revenue at $350/day max to prevent passive income exploits
+  const dailyRevenue = Math.min(350, Math.round(rawRevenue * 0.18));
 
   return {
     extraSlots,
