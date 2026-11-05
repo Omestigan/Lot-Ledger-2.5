@@ -97,11 +97,14 @@ export default function App() {
   });
   const [flashMessages, setFlashMessages] = useState<string[]>([]);
 
-  // Anti-Cheat & Income Rate Limiting Engine ($4,000/min velocity cap & passive collection limits)
+  // Anti-Cheat & Income Rate Limiting Engine ($4,000/min velocity cap, passive collection limits & >1 click/2s rate limit)
   const earningsHistoryRef = React.useRef<{ timestamp: number; amount: number; source: string }[]>([]);
   const lastEmpireCollectionTimeRef = React.useRef<number>(0);
+  const lastClickTimeRef = React.useRef<number>(0);
+  const clickGraceUntilRef = React.useRef<number>(0);
+
   const [antiCheatViolation, setAntiCheatViolation] = useState<{
-    type: 'CEILING_800K' | 'VELOCITY_4K_PER_MIN' | 'PASSIVE_EXPLOIT';
+    type: 'CEILING_800K' | 'VELOCITY_4K_PER_MIN' | 'PASSIVE_EXPLOIT' | 'RAPID_CLICK_EXPLOIT';
     message: string;
     amount?: number;
   } | null>(null);
@@ -194,6 +197,30 @@ export default function App() {
       });
     }
   }, [state.cash, antiCheatViolation]);
+
+  // Continuous Anti-Cheat Monitor: Automatic Click Detection (>1 click per 2 seconds trigger)
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (antiCheatViolation || state.cash > 800000) return;
+      const now = Date.now();
+      if (now < clickGraceUntilRef.current) return;
+
+      if (lastClickTimeRef.current > 0) {
+        const interval = now - lastClickTimeRef.current;
+        if (interval < 2000) {
+          setAntiCheatViolation({
+            type: 'RAPID_CLICK_EXPLOIT',
+            message: `Automated macro / clicker detected: Click frequency exceeded 1 click per 2 seconds (Recorded interval: ${(interval / 1000).toFixed(2)}s < 2.0s). Anti-cheat protection triggered.`,
+          });
+          return;
+        }
+      }
+      lastClickTimeRef.current = now;
+    };
+
+    window.addEventListener('click', handleGlobalClick, true);
+    return () => window.removeEventListener('click', handleGlobalClick, true);
+  }, [antiCheatViolation, state.cash]);
 
   // Flash helper
   const addFlash = useCallback((msg: string) => {
@@ -1884,6 +1911,8 @@ export default function App() {
             <button
               onClick={() => {
                 sound.playClick();
+                clickGraceUntilRef.current = Date.now() + 3000;
+                lastClickTimeRef.current = 0;
                 setAntiCheatViolation(null);
                 handleStartNewGame(state.region, state.mode, state.player, state.customLocation);
               }}
