@@ -97,9 +97,10 @@ export default function App() {
   });
   const [flashMessages, setFlashMessages] = useState<string[]>([]);
 
-  // Anti-Cheat & Income Rate Limiting Engine ($4,000/min velocity cap, passive collection limits & >1 click/2s rate limit)
+  // Anti-Cheat & Income Rate Limiting Engine ($4,000/min velocity cap, passive collection limits & >1 click/1s rate limit)
   const earningsHistoryRef = React.useRef<{ timestamp: number; amount: number; source: string }[]>([]);
   const lastEmpireCollectionTimeRef = React.useRef<number>(0);
+  const lastWaitWeekTimeRef = React.useRef<number>(0);
   const lastClickTimeRef = React.useRef<number>(0);
   const clickGraceUntilRef = React.useRef<number>(0);
 
@@ -198,7 +199,7 @@ export default function App() {
     }
   }, [state.cash, antiCheatViolation]);
 
-  // Continuous Anti-Cheat Monitor: Automatic Click Detection (>1 click per 2 seconds trigger)
+  // Continuous Anti-Cheat Monitor: Automatic Click Detection (>1 click per 1 second trigger)
   useEffect(() => {
     const handleGlobalClick = () => {
       if (antiCheatViolation || state.cash > 800000) return;
@@ -207,10 +208,10 @@ export default function App() {
 
       if (lastClickTimeRef.current > 0) {
         const interval = now - lastClickTimeRef.current;
-        if (interval < 2000) {
+        if (interval < 1000) {
           setAntiCheatViolation({
             type: 'RAPID_CLICK_EXPLOIT',
-            message: `Automated macro / clicker detected: Click frequency exceeded 1 click per 2 seconds (Recorded interval: ${(interval / 1000).toFixed(2)}s < 2.0s). Anti-cheat protection triggered.`,
+            message: `Automated macro / clicker detected: Click frequency exceeded 1 click per second (Recorded interval: ${(interval / 1000).toFixed(2)}s < 1.0s). Anti-cheat protection triggered.`,
           });
           return;
         }
@@ -288,8 +289,15 @@ export default function App() {
   }, [state.day, state.cash, state.cars.length]);
 
   // Advance 1 Day
-  const handleEndDay = () => {
-    sound.playClick();
+  const handleEndDay = (isFastForward = false) => {
+    const now = Date.now();
+    if (!isFastForward && now - lastEmpireCollectionTimeRef.current < 10000) {
+      addFlash('Day ended. Passive revenue collection rate-limited (max 1 collection per 10s).');
+    }
+    if (!isFastForward) {
+      lastEmpireCollectionTimeRef.current = now;
+      sound.playClick();
+    }
     setState((prev) => {
       const next = { ...prev };
       next.day++;
@@ -398,32 +406,46 @@ export default function App() {
         addFlash(rivalTick.boughtListings[0].reason);
       }
 
-      // Empire Passive Daily Revenue Collection
+      // Empire Passive Daily Revenue Collection (Strictly Capped on Fast-Forward)
       if (next.empire) {
         const empireBonuses = getEmpireTotalBonuses(next.empire);
-        if (empireBonuses.dailyRevenue > 0) {
-          next.cash += empireBonuses.dailyRevenue;
-          next.log.unshift({
-            d: next.day,
-            m: `[Empire Headquarters] Facility revenue collected: +${fmt(empireBonuses.dailyRevenue)}`,
-            $: empireBonuses.dailyRevenue,
-          });
+        const baseRevenue = isFastForward
+          ? Math.min(empireBonuses.dailyRevenue, 25) // Max $25/day fast-forward revenue ($175 max over 7 days)
+          : Math.min(empireBonuses.dailyRevenue, 350);
+
+        if (baseRevenue > 0) {
+          if (checkAndRecordIncome(baseRevenue, isFastForward ? '+7 Days Fast-Forward Revenue' : 'Daily Passive Revenue')) {
+            next.cash += baseRevenue;
+            next.log.unshift({
+              d: next.day,
+              m: `[Empire Headquarters] Facility revenue collected: +${fmt(baseRevenue)}${isFastForward ? ' (+7 Days Capped)' : ''}`,
+              $: baseRevenue,
+            });
+          }
         }
       }
 
       return next;
     });
 
-
-    addFlash('A new day begins. Market listings and rival dealerships have updated.');
+    if (!isFastForward) {
+      addFlash('A new day begins. Market listings and rival dealerships have updated.');
+    }
   };
 
   const handleWaitWeek = () => {
     sound.playClick();
-    for (let i = 0; i < 7; i++) {
-      handleEndDay();
+    const now = Date.now();
+    if (now - lastWaitWeekTimeRef.current < 10000) {
+      addFlash('+7 Days fast-forward on 10s cooldown. Please wait before advancing again.');
+      return;
     }
-    addFlash('A full week has passed.');
+    lastWaitWeekTimeRef.current = now;
+
+    for (let i = 0; i < 7; i++) {
+      handleEndDay(true);
+    }
+    addFlash('A full week has passed (+7 Days money additions strictly capped).');
   };
 
   // Connection Unlock
